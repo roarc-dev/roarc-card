@@ -19,10 +19,7 @@
     "@types/node": "^20",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
+    "framer": "^2.4.1",
     "typescript": "^5.0.2"
   }
 }
-
-
-
-
