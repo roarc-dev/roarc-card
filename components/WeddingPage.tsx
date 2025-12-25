@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useMemo, useEffect } from 'react'
 import type { PageSettings } from '@/lib/supabase'
 import { ComponentType, DEFAULT_COMPONENT_ORDER } from '@/lib/components-registry'

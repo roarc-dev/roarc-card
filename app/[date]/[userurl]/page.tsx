@@ -1,5 +1,7 @@
-import { Metadata } from 'next'
-import { notFound, redirect } from 'next/navigation'
+'use client'
+
+import { notFound, redirect, useParams } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
 import {
   formatWeddingDateToSegment,
   getPageSettingsByPageId,
@@ -13,88 +15,79 @@ interface PageProps {
   params: { date: string; userurl: string }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { date, userurl } = params
+export default function Page() {
+  const params = useParams()
+  const { date, userurl } = params as { date: string; userurl: string }
 
-  // 1) date+userurl 우선
-  let pageSettings = await getPageSettingsByUserUrl(userurl, date)
-  // 2) 폴백: userurl이 사실 page_id인 레거시 링크
-  if (!pageSettings) {
-    pageSettings = await getPageSettingsByPageId(userurl)
-  }
+  const [pageSettings, setPageSettings] = useState<PageSettings | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!pageSettings) {
-    return {
-      title: 'roarc mobile card',
-      description: 'We make Romantic Art Creations',
+  useEffect(() => {
+    async function loadPageSettings() {
+      if (!userurl || userurl.length < 1) {
+        notFound()
+        return
+      }
+      if (!date || date.length < 1) {
+        notFound()
+        return
+      }
+
+      const isoFromSegment = parseDateSegmentToIso(date)
+      if (!isoFromSegment) {
+        notFound()
+        return
+      }
+
+      try {
+        // 1) date+userurl 우선
+        let settings: PageSettings | null = await getPageSettingsByUserUrl(userurl, date)
+
+        // 2) 폴백: userurl이 사실 page_id인 레거시 링크
+        if (!settings) {
+          settings = await getPageSettingsByPageId(userurl)
+          if (!settings) {
+            notFound()
+            return
+          }
+
+          // user_url이 있으면 canonical로 리다이렉트
+          if (settings.user_url) {
+            redirect(`/${encodeURIComponent(date)}/${encodeURIComponent(settings.user_url)}`)
+            return
+          }
+        }
+
+        const expectedSegment = settings.wedding_date
+          ? formatWeddingDateToSegment(settings.wedding_date)
+          : null
+
+        if (expectedSegment && expectedSegment !== date) {
+          redirect(`/${expectedSegment}/${encodeURIComponent(userurl)}`)
+          return
+        }
+
+        setPageSettings(settings)
+      } catch (err) {
+        console.error('Failed to load page settings:', err)
+        setError('페이지를 불러올 수 없습니다')
+      } finally {
+        setLoading(false)
+      }
     }
+
+    loadPageSettings()
+  }, [date, userurl])
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>로딩 중...</div>
   }
 
-  const groomName = pageSettings.groom_name || pageSettings.groom_name_en || ''
-  const brideName = pageSettings.bride_name || pageSettings.bride_name_en || ''
-  const title = groomName && brideName ? `${groomName} ♥ ${brideName} 결혼합니다` : 'roarc mobile card'
-
-  const description = pageSettings.venue_name
-    ? `${pageSettings.wedding_date || ''} ${pageSettings.venue_name}`
-    : 'We make Romantic Art Creations'
-
-  const image = pageSettings.main_photo_url || 'https://cdn.roarc.kr/data/roarc_SEO_basic.jpg'
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: [image],
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: [image],
-    },
+  if (error || !pageSettings) {
+    notFound()
+    return null
   }
-}
-
-/**
- * URL: /[YYMMDD]/[userurl]
- * - page_id는 내부 키로 유지
- * - userurl은 유저가 편집 가능한 공개 주소
- */
-export default async function Page({ params }: PageProps) {
-  const { date, userurl } = params
-
-  if (!userurl || userurl.length < 1) notFound()
-  if (!date || date.length < 1) notFound()
-
-  const isoFromSegment = parseDateSegmentToIso(date)
-  if (!isoFromSegment) notFound()
-
-  // 1) date+userurl 우선
-  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(userurl, date)
-
-  // 2) 폴백: userurl이 사실 page_id인 레거시 링크
-  if (!pageSettings) {
-    pageSettings = await getPageSettingsByPageId(userurl)
-    if (!pageSettings) notFound()
-
-    // user_url이 있으면 canonical로 리다이렉트
-    if (pageSettings.user_url) {
-      redirect(`/${encodeURIComponent(date)}/${encodeURIComponent(pageSettings.user_url)}`)
-    }
-  }
-
-  const expectedSegment = pageSettings.wedding_date
-    ? formatWeddingDateToSegment(pageSettings.wedding_date)
-    : null
-
-  if (expectedSegment && expectedSegment !== date) {
-    redirect(`/${expectedSegment}/${encodeURIComponent(userurl)}`)
-  }
-
-  void isoFromSegment
 
   return <WeddingPage pageSettings={pageSettings} />
 }
