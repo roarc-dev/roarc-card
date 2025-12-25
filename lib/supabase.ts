@@ -32,12 +32,13 @@ export interface PageSettings {
  * @deprecated proxy API가 `userUrl` 파라미터를 지원하지 않는 경우가 있어, 현재는 page_id 조회로 폴백합니다.
  * - 호환성 목적: 기존 호출부 유지
  */
-export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSettings | null> {
+export async function getPageSettingsByUserUrl(userUrl: string, dateSegment?: string): Promise<PageSettings | null> {
   const normalized = userUrl?.trim()
   if (!normalized) return null
   try {
+    const dateParam = dateSegment?.trim() ? `&date=${encodeURIComponent(dateSegment.trim())}` : ''
     const response = await fetch(
-      `${PROXY_BASE_URL}/api/page-settings?userUrl=${encodeURIComponent(normalized)}`,
+      `${PROXY_BASE_URL}/api/page-settings?userUrl=${encodeURIComponent(normalized)}${dateParam}`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -128,6 +129,8 @@ export function parseDateSegmentToIso(dateSegment: string): string | null {
   }
   return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
 }
+
+
 
 
 

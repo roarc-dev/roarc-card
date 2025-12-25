@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import {
   formatWeddingDateToSegment,
+  getPageSettingsByPageId,
   getPageSettingsByUserUrl,
   PageSettings,
   parseDateSegmentToIso,
@@ -13,9 +14,14 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { userurl } = params
+  const { date, userurl } = params
 
-  const pageSettings = await getPageSettingsByUserUrl(userurl)
+  // 1) date+userurl 우선
+  let pageSettings = await getPageSettingsByUserUrl(userurl, date)
+  // 2) 폴백: userurl이 사실 page_id인 레거시 링크
+  if (!pageSettings) {
+    pageSettings = await getPageSettingsByPageId(userurl)
+  }
 
   if (!pageSettings) {
     return {
@@ -66,8 +72,19 @@ export default async function Page({ params }: PageProps) {
   const isoFromSegment = parseDateSegmentToIso(date)
   if (!isoFromSegment) notFound()
 
-  const pageSettings: PageSettings | null = await getPageSettingsByUserUrl(userurl)
-  if (!pageSettings) notFound()
+  // 1) date+userurl 우선
+  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(userurl, date)
+
+  // 2) 폴백: userurl이 사실 page_id인 레거시 링크
+  if (!pageSettings) {
+    pageSettings = await getPageSettingsByPageId(userurl)
+    if (!pageSettings) notFound()
+
+    // user_url이 있으면 canonical로 리다이렉트
+    if (pageSettings.user_url) {
+      redirect(`/${encodeURIComponent(date)}/${encodeURIComponent(pageSettings.user_url)}`)
+    }
+  }
 
   const expectedSegment = pageSettings.wedding_date
     ? formatWeddingDateToSegment(pageSettings.wedding_date)
