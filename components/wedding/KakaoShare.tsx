@@ -269,7 +269,8 @@ export default function KakaoShare(props: KakaoShareProps) {
 
         if (script) {
             // 스크립트가 이미 있는 경우
-            if (script.complete) {
+            // readyState 또는 DOM 로드 상태로 확인
+            if (script.readyState === 'loaded' || script.readyState === 'complete') {
                 // 이미 로드 완료
                 handleLoad()
             } else {
