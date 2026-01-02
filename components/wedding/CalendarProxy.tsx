@@ -194,7 +194,7 @@ const HeartShape: React.FC<{ color: string; size?: number }> = ({
             position: "absolute",
             top: "50%",
             left: "50%",
-            transform: "translate(-50%, -45%)", // 약간 위로 이동
+            transform: "translate(-50%, -50%)", // 중앙 정렬 후 약간 위로 이동
             zIndex: 0,
         }}
     >
@@ -711,7 +711,9 @@ export default function CalendarComponentProxy({
                                                 lineHeight: "2.6em",
                                                 fontFamily: pretendardFontFamily,
                                                 fontWeight: isHighlighted(day) ? 600 : 400,
-                                                color: "#000",
+                                                color: isHighlighted(day) 
+                                                    ? (pageSettings?.highlight_text_color || "#000")
+                                                    : "#000",
                                                 zIndex: 1,
                                                 position: "relative",
                                             }}
