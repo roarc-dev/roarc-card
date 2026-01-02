@@ -285,6 +285,7 @@ export default function BGM(props: BGMProps) {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    backgroundColor: '#fff',
                     ...style,
                 }}
             >
@@ -386,11 +387,9 @@ export default function BGM(props: BGMProps) {
     }
 
     // papillon 조건에 따른 컨테이너 스타일 결정
-    // - papillon: 높이 43px 고정 + 배경 #FAFAFA + padding 6px (Final_v1 기준)
-    // - 그 외: padding 6px (원본과 동일)
-    const containerStyle: React.CSSProperties = {
+    const containerStyle = {
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column' as const,
         alignItems: 'flex-end',
         justifyContent: 'center',
         padding: '6px',
