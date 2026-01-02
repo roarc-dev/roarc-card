@@ -145,14 +145,6 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           />
         )
 
-      case 'InviteName':
-        return (
-          <WeddingInvitationSection
-            key={`${type}-${index}`}
-            pageId={pageId}
-          />
-        )
-
       // 아직 연결되지 않은 컴포넌트 - Placeholder로 표시
       case 'CalendarAddBtn':
       case 'UnifiedGalleryComplete':

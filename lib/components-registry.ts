@@ -38,6 +38,7 @@ export const DEFAULT_COMPONENT_ORDER: ComponentType[] = [
   'bgm',                  // 배경음악 (맨 위에 위치)
   'NameSection',
   'PhotoSectionProxy',
+  'InviteName',           // 초대 이름 (초대하는 분들)
   'Info',
   'CalendarProxy',
   'CalendarAddBtn',
