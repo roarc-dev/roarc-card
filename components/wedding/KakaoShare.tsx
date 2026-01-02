@@ -4,6 +4,10 @@ import React, { useEffect, useMemo, useState } from 'react'
 
 import { PROXY_BASE_URL } from '@/lib/supabase'
 
+const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js'
+const KAKAO_APP_KEY =
+    process.env.NEXT_PUBLIC_KAKAO_JS_KEY || 'db63a9b37174b5a425a21d797318dff8'
+
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
 const FONT_STACKS = {
     pretendardVariable: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple SD Gothic Neo, Noto Sans KR, "Apple Color Emoji", "Segoe UI Emoji"',
@@ -156,8 +160,9 @@ interface KakaoShareProps {
 declare global {
     interface Window {
         Kakao?: {
-            isInitialized: () => boolean
-            Share: {
+            init: (key: string) => void
+            isInitialized?: () => boolean
+            Share?: {
                 sendCustom: (options: {
                     templateId: number
                     templateArgs: Record<string, string>
@@ -179,6 +184,7 @@ export default function KakaoShare(props: KakaoShareProps) {
     const [settings, setSettings] = useState<PageSettings | null>(null)
     const [inviteData, setInviteData] = useState<InviteData | null>(null)
     const [kakaoReady, setKakaoReady] = useState(false)
+    const [kakaoClient, setKakaoClient] = useState<Window['Kakao']>()
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
@@ -232,84 +238,69 @@ export default function KakaoShare(props: KakaoShareProps) {
         }
     }, [pageId])
 
-    // 카카오 SDK 초기화 확인 및 재시도 로직
+    // 카카오 SDK 로드 및 초기화
     useEffect(() => {
-        const checkKakaoReady = () => {
-            if (typeof window === 'undefined') {
-                console.log('[KakaoShare] window가 undefined')
-                return false
-            }
+        if (typeof window === 'undefined') return
 
-            const kakao = (window as any).Kakao
+        const prepareClient = () => {
+            const kakao = window.Kakao
             if (!kakao) {
                 console.log('[KakaoShare] window.Kakao 없음')
                 return false
             }
-
-            console.log('[KakaoShare] Kakao 객체 존재:', !!kakao)
-            console.log('[KakaoShare] Kakao.Share 존재:', !!(kakao.Share))
-            console.log('[KakaoShare] Kakao.isInitialized 함수 존재:', typeof kakao.isInitialized === 'function')
-
-            // isInitialized 함수가 있는 경우
-            if (typeof kakao.isInitialized === 'function') {
-                const initialized = kakao.isInitialized()
-                console.log('[KakaoShare] Kakao.isInitialized() 결과:', initialized)
-                
-                if (initialized) {
-                    console.log('[KakaoShare] Kakao SDK 초기화 완료')
-                    setKakaoReady(true)
-                    return true
-                } else {
-                    // 초기화되지 않은 경우 재시도
-                    console.log('[KakaoShare] Kakao SDK 초기화 안됨, 재시도')
-                    try {
-                        kakao.init('db63a9b37174b5a425a21d797318dff8')
-                        if (kakao.isInitialized()) {
-                            console.log('[KakaoShare] 재초기화 성공')
-                            setKakaoReady(true)
-                            return true
-                        }
-                    } catch (error) {
-                        console.error('[KakaoShare] 재초기화 실패:', error)
+            try {
+                if (typeof kakao.isInitialized === 'function') {
+                    if (!kakao.isInitialized()) {
+                        kakao.init(KAKAO_APP_KEY)
                     }
+                } else if (typeof kakao.init === 'function') {
+                    kakao.init(KAKAO_APP_KEY)
                 }
-            } else {
-                // isInitialized 함수가 없는 경우 (구버전 SDK 또는 로드 중)
-                console.log('[KakaoShare] isInitialized 함수 없음, Share 모듈 확인')
-                if (kakao.Share) {
-                    // Share 모듈이 있으면 초기화된 것으로 간주
-                    console.log('[KakaoShare] Share 모듈 존재, 초기화된 것으로 간주')
-                    setKakaoReady(true)
-                    return true
+                if (!kakao.Share) {
+                    console.warn('[KakaoShare] Kakao.Share 미탑재')
+                    return false
                 }
+                setKakaoClient(kakao)
+                setKakaoReady(true)
+                return true
+            } catch (error) {
+                console.error('[KakaoShare] Kakao SDK 초기화 실패:', error)
+                setKakaoReady(false)
+                return false
             }
+        }
 
+        if (prepareClient()) {
+            return
+        }
+
+        const scriptSelector = `script[src="${KAKAO_SDK_URL}"]`
+        let script = document.querySelector<HTMLScriptElement>(scriptSelector)
+        const handleLoad = () => {
+            console.log('[KakaoShare] Kakao SDK 로드 완료, 초기화 재시도')
+            prepareClient()
+        }
+        const handleError = (event: Event) => {
+            console.error('[KakaoShare] Kakao SDK 로드 실패', event)
             setKakaoReady(false)
-            return false
         }
 
-        // 초기 체크
-        if (checkKakaoReady()) {
-            return // 이미 준비되었으면 종료
+        if (!script) {
+            script = document.createElement('script')
+            script.src = KAKAO_SDK_URL
+            script.async = true
+            script.crossOrigin = 'anonymous'
+            script.integrity =
+                'sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka'
+            document.head.appendChild(script)
         }
 
-        // 주기적으로 체크 (SDK 로드 대기)
-        const interval = setInterval(() => {
-            if (checkKakaoReady()) {
-                clearInterval(interval)
-            }
-        }, 200) // 200ms마다 체크
-
-        // 최대 10초 대기
-        const timeout = setTimeout(() => {
-            clearInterval(interval)
-            checkKakaoReady()
-            console.log('[KakaoShare] SDK 로드 대기 완료 (10초)')
-        }, 10000)
+        script.addEventListener('load', handleLoad)
+        script.addEventListener('error', handleError)
 
         return () => {
-            clearInterval(interval)
-            clearTimeout(timeout)
+            script?.removeEventListener('load', handleLoad)
+            script?.removeEventListener('error', handleError)
         }
     }, [])
 
@@ -367,7 +358,7 @@ export default function KakaoShare(props: KakaoShareProps) {
     // 템플릿 ID 고정값
     const templateId = "124666"
 
-    const kakao = typeof window !== 'undefined' ? window.Kakao : undefined
+    const kakao = kakaoClient
 
     // isReadyToShare 조건 완화: Share 모듈이 있으면 활성화
     const isReadyToShare = useMemo(() => {
@@ -418,7 +409,9 @@ export default function KakaoShare(props: KakaoShareProps) {
         console.log('[KakaoShare] kakao:', kakao)
         
         // 카카오 SDK 재확인
-        const currentKakao = typeof window !== 'undefined' ? (window as any).Kakao : undefined
+        const currentKakao =
+            kakaoClient ||
+            (typeof window !== 'undefined' ? (window as Window).Kakao : undefined)
         if (!currentKakao) {
             console.error('🔴 [KakaoShare] window.Kakao를 찾을 수 없음')
             alert('카카오 SDK가 로드되지 않았습니다. 페이지를 새로고침해주세요.')
@@ -441,7 +434,7 @@ export default function KakaoShare(props: KakaoShareProps) {
         if (typeof currentKakao.isInitialized === 'function' && !currentKakao.isInitialized()) {
             console.log('[KakaoShare] SDK 미초기화, 재초기화 시도')
             try {
-                currentKakao.init('db63a9b37174b5a425a21d797318dff8')
+                currentKakao.init(KAKAO_APP_KEY)
             } catch (error) {
                 console.error('[KakaoShare] 재초기화 실패:', error)
             }
@@ -527,4 +520,3 @@ export default function KakaoShare(props: KakaoShareProps) {
         </div>
     )
 }
-
