@@ -1,14 +1,24 @@
 // 프록시 서버 URL (기존 API와 연동) - Supabase 직접 연결 대신 PROXY 사용
 // 서버와 클라이언트 모두에서 접근 가능하도록 next.config.js의 env 설정 사용
-const envProxyUrl = process.env.NEXT_PUBLIC_PROXY_URL || process.env.PROXY_URL
 const defaultUrl = 'https://wedding-admin-proxy.vercel.app'
-export const PROXY_BASE_URL = envProxyUrl || defaultUrl
 
-// URL 유효성 검증
-if (!PROXY_BASE_URL || !PROXY_BASE_URL.startsWith('http')) {
-  console.error('[supabase.ts] Invalid PROXY_BASE_URL:', PROXY_BASE_URL)
-  throw new Error(`Invalid PROXY_BASE_URL: ${PROXY_BASE_URL}. Must start with http:// or https://`)
+// 환경 변수 확인 (서버와 클라이언트 모두)
+const envProxyUrl = 
+  process.env.NEXT_PUBLIC_PROXY_URL || 
+  process.env.PROXY_URL || 
+  defaultUrl
+
+// URL 유효성 검증 및 정규화
+let PROXY_BASE_URL = envProxyUrl.trim()
+if (!PROXY_BASE_URL.startsWith('http://') && !PROXY_BASE_URL.startsWith('https://')) {
+  console.warn('[supabase.ts] Invalid PROXY_BASE_URL format, using default:', PROXY_BASE_URL)
+  PROXY_BASE_URL = defaultUrl
 }
+
+// 마지막 슬래시 제거
+PROXY_BASE_URL = PROXY_BASE_URL.replace(/\/$/, '')
+
+export { PROXY_BASE_URL }
 
 // 디버깅 로그 (서버와 클라이언트 모두)
 console.log('[supabase.ts] PROXY_BASE_URL:', PROXY_BASE_URL)
