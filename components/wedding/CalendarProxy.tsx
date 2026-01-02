@@ -180,9 +180,10 @@ async function getCalendarData(pageId: string): Promise<CalendarEvent[]> {
 }
 
 // 하트 모양 SVG 컴포넌트
-const HeartShape: React.FC<{ color: string; size?: number }> = ({
+const HeartShape: React.FC<{ color: string; size?: number; transformY?: string }> = ({
     color,
     size = 16,
+    transformY = "-50%",
 }) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -194,7 +195,7 @@ const HeartShape: React.FC<{ color: string; size?: number }> = ({
             position: "absolute",
             top: "50%",
             left: "50%",
-            transform: "translate(-50%, -50%)", // 중앙 정렬 후 약간 위로 이동
+            transform: `translate(-50%, ${transformY})`, // 반응형 위치 조정
             zIndex: 0,
         }}
     >
@@ -225,6 +226,7 @@ export default function CalendarComponentProxy({
     )
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
+    const [isMobile, setIsMobile] = useState(false)
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
@@ -235,6 +237,24 @@ export default function CalendarComponentProxy({
 
     // 로컬 개발에서는 더미 데이터 사용
     const isDevelopment = process.env.NODE_ENV === 'development'
+
+    // 화면 크기 감지 (모바일/데스크탑 구분)
+    useEffect(() => {
+        const checkIsMobile = () => {
+            // 모바일 기준: 768px 이하
+            setIsMobile(window.innerWidth <= 768)
+        }
+
+        // 초기 체크
+        checkIsMobile()
+
+        // 리사이즈 이벤트 리스너
+        window.addEventListener('resize', checkIsMobile)
+
+        return () => {
+            window.removeEventListener('resize', checkIsMobile)
+        }
+    }, [])
 
     // 데이터 로드
     useEffect(() => {
@@ -673,6 +693,7 @@ export default function CalendarComponentProxy({
                                                                 "#e0e0e0"
                                                             }
                                                             size={28}
+                                                            transformY={isMobile ? "-45%" : "-50%"}
                                                         />
                                                     </motion.div>
                                                 ) : (
