@@ -1,7 +1,3 @@
-'use client'
-
-import Link from 'next/link'
-
 export default function NotFound() {
   return (
     <div className="error-container">
@@ -18,7 +14,7 @@ export default function NotFound() {
         <br />
         주소가 변경되었을 수 있습니다.
       </p>
-      <Link
+      <a
         href="/"
         style={{
           marginTop: '20px',
@@ -31,7 +27,7 @@ export default function NotFound() {
         }}
       >
         홈으로 돌아가기
-      </Link>
+      </a>
     </div>
   )
 }
