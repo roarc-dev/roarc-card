@@ -67,25 +67,36 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function Page({ params }: PageProps) {
   const { date, slug } = params // slug는 실제로 pageId
 
+  console.log('[app/[date]/[slug]] Page called with:', { date, slug })
+
   // 유효성 검사
   if (!slug || slug.length < 1) {
+    console.log('[app/[date]/[slug]] Invalid slug')
     notFound()
   }
   if (!date || date.length < 1) {
+    console.log('[app/[date]/[slug]] Invalid date')
     notFound()
   }
 
   // 날짜 형식 검증 (선택적 - 유효하지 않아도 계속 진행)
   const isoFromSegment = parseDateSegmentToIso(date)
-  // 날짜 파싱 실패해도 계속 진행 (notFound() 호출 안 함)
+  console.log('[app/[date]/[slug]] Date parsed:', isoFromSegment)
 
   // pageId로만 조회 (단순화)
   const pageSettings: PageSettings | null = await getPageSettingsByPageId(slug)
 
+  console.log('[app/[date]/[slug]] Page settings result:', { 
+    found: !!pageSettings, 
+    pageId: pageSettings?.page_id 
+  })
+
   if (!pageSettings) {
+    console.log('[app/[date]/[slug]] Page settings not found, calling notFound()')
     notFound()
   }
 
+  console.log('[app/[date]/[slug]] Rendering WeddingPage')
   // redirect 로직 제거 - 단순히 페이지 렌더링만 수행
   return <WeddingPage pageSettings={pageSettings} />
 }

@@ -70,30 +70,46 @@ export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSet
  * page_id로 페이지 설정 조회
  */
 export async function getPageSettingsByPageId(pageId: string): Promise<PageSettings | null> {
+  const url = `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`
+  
+  // 디버깅 로그
+  console.log('[getPageSettingsByPageId] Requesting:', { pageId, url, proxyBaseUrl: PROXY_BASE_URL })
+  
   try {
-    const response = await fetch(
-      `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        next: { revalidate: 60 },
-      }
-    )
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      next: { revalidate: 60 },
+    })
+
+    console.log('[getPageSettingsByPageId] Response status:', response.status)
 
     if (!response.ok) {
-      console.error(`[getPageSettingsByPageId] HTTP ${response.status}`)
+      console.error(`[getPageSettingsByPageId] HTTP ${response.status} for pageId: ${pageId}`)
+      const text = await response.text()
+      console.error('[getPageSettingsByPageId] Response body:', text.substring(0, 200))
       return null
     }
 
     const result = await response.json()
+    console.log('[getPageSettingsByPageId] Response data:', { 
+      success: result.success, 
+      hasData: !!result.data,
+      pageId: result.data?.page_id 
+    })
     
     if (result.success && result.data) {
       return result.data as PageSettings
     }
     
+    console.log('[getPageSettingsByPageId] No data in response:', result)
     return null
   } catch (error) {
     console.error('[getPageSettingsByPageId] Error:', error)
+    if (error instanceof Error) {
+      console.error('[getPageSettingsByPageId] Error message:', error.message)
+      console.error('[getPageSettingsByPageId] Error stack:', error.stack)
+    }
     return null
   }
 }
