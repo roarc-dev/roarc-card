@@ -212,24 +212,24 @@ export default function BGM(props: BGMProps) {
     useEffect(() => {
         if (showNotification) {
             // 1초 후 waiting 상태로 변경
-            const enterTimer = window.setTimeout(() => {
+            const enterTimer = setTimeout(() => {
                 setNotificationPhase('waiting')
             }, 1000)
 
             // 3초 후 exiting 상태로 변경
-            const exitTimer = window.setTimeout(() => {
+            const exitTimer = setTimeout(() => {
                 setNotificationPhase('exiting')
             }, 3000)
 
             // 3.5초 후 완전히 숨김
-            const hideTimer = window.setTimeout(() => {
+            const hideTimer = setTimeout(() => {
                 setShowNotification(false)
             }, 3500)
 
             return () => {
-                window.clearTimeout(enterTimer)
-                window.clearTimeout(exitTimer)
-                window.clearTimeout(hideTimer)
+                clearTimeout(enterTimer)
+                clearTimeout(exitTimer)
+                clearTimeout(hideTimer)
             }
         }
     }, [showNotification])
@@ -336,7 +336,7 @@ export default function BGM(props: BGMProps) {
         useEffect(() => {
             if (!isPlaying) return
 
-            const interval = window.setInterval(() => {
+            const interval = setInterval(() => {
                 setHeights([
                     Math.random() * 9 + 3, // 3-12px (11px 컨테이너 내에서)
                     Math.random() * 9 + 3,
@@ -345,7 +345,7 @@ export default function BGM(props: BGMProps) {
                 ])
             }, 300) // 더 느리게 변경
 
-            return () => window.clearInterval(interval)
+            return () => clearInterval(interval)
         }, [isPlaying])
 
         return (
@@ -387,21 +387,28 @@ export default function BGM(props: BGMProps) {
 
     // papillon 조건에 따른 컨테이너 스타일 결정
     // - papillon: 높이 43px 고정 + 배경 #FAFAFA + padding 6px (Final_v1 기준)
-    // - 그 외: 기존 프리뷰 반영(상하 padding 80px)
-    const isPapillon = bgmType === 'papillon'
+    // - 그 외: padding 6px (원본과 동일)
     const containerStyle: React.CSSProperties = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        padding: isPapillon ? '6px' : '80px 6px',
+        padding: '6px',
         gap: '10px',
         width: '100%',
-        marginTop: '0px',
-        marginBottom: '0px',
-        height: isPapillon ? '43px' : bgmEnabled && audioUrl ? 'auto' : '0px',
-        minHeight: isPapillon ? '43px' : bgmEnabled && audioUrl ? '0px' : '0px',
-        backgroundColor: isPapillon ? '#FAFAFA' : '#fff',
+        height:
+            bgmType === 'papillon'
+                ? '43px'
+                : bgmEnabled && audioUrl
+                  ? 'auto'
+                  : '0px',
+        minHeight:
+            bgmType === 'papillon'
+                ? '43px'
+                : bgmEnabled && audioUrl
+                  ? '0px'
+                  : '0px',
+        backgroundColor: bgmType === 'papillon' ? '#FAFAFA' : '#fff',
         ...style,
     }
 
