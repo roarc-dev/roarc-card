@@ -170,6 +170,11 @@ declare global {
 export default function KakaoShare(props: KakaoShareProps) {
     const { pageId = '', userUrl = '', style } = props
 
+    // 즉시 로그 출력 (렌더링 시점)
+    console.log('🔵 [KakaoShare] 컴포넌트 렌더링 시작')
+    console.error('🔴 [KakaoShare] ERROR 레벨 로그 테스트 - 컴포넌트 렌더링됨')
+    console.warn('🟡 [KakaoShare] WARN 레벨 로그 테스트 - props:', { pageId, userUrl })
+
     const [settings, setSettings] = useState<PageSettings | null>(null)
     const [inviteData, setInviteData] = useState<InviteData | null>(null)
     const [kakaoReady, setKakaoReady] = useState(false)
@@ -181,8 +186,9 @@ export default function KakaoShare(props: KakaoShareProps) {
 
     // 컴포넌트 마운트 확인
     useEffect(() => {
-        console.log('[KakaoShare] ===== 컴포넌트 마운트됨 =====')
-        console.log('[KakaoShare] props:', { pageId, userUrl })
+        console.log('🔵 [KakaoShare] ===== useEffect 실행됨 =====')
+        console.error('🔴 [KakaoShare] ERROR 레벨 - useEffect 실행')
+        console.warn('🟡 [KakaoShare] WARN 레벨 - props:', { pageId, userUrl })
         console.log('[KakaoShare] window.Kakao 존재:', typeof window !== 'undefined' && !!(window as any).Kakao)
         if (typeof window !== 'undefined' && (window as any).Kakao) {
             const kakao = (window as any).Kakao
@@ -344,21 +350,40 @@ export default function KakaoShare(props: KakaoShareProps) {
         kakao.isInitialized()
 
     const handleShare = () => {
+        console.error('🔴 [KakaoShare] 버튼 클릭됨!')
+        console.log('[KakaoShare] handleShare 호출, isReadyToShare:', isReadyToShare)
+        console.log('[KakaoShare] templateArgs:', templateArgs)
+        console.log('[KakaoShare] kakao:', kakao)
+        
         if (!isReadyToShare || !templateArgs) {
+            console.error('🔴 [KakaoShare] 공유 불가 - 조건 미충족')
+            console.log('[KakaoShare] 조건 체크:', {
+                isReadyToShare,
+                hasTemplateArgs: !!templateArgs,
+                hasKakao: !!kakao,
+                kakaoReady,
+                kakaoInitialized: kakao?.isInitialized ? kakao.isInitialized() : false,
+            })
             alert('카카오톡 공유를 위해 필요한 설정이 준비되지 않았습니다.')
             return
         }
 
         try {
+            console.log('[KakaoShare] 카카오톡 공유 시도')
             kakao!.Share.sendCustom({
                 templateId: Number(templateId),
                 templateArgs,
             })
+            console.log('[KakaoShare] 카카오톡 공유 성공')
         } catch (error) {
-            console.error('카카오톡 공유 실패', error)
+            console.error('🔴 [KakaoShare] 카카오톡 공유 실패', error)
             alert('카카오톡 공유 중 오류가 발생했습니다.')
         }
     }
+
+    // 렌더링 시점 로그
+    console.log('🔵 [KakaoShare] 렌더링 중, isReadyToShare:', isReadyToShare)
+    console.error('🔴 [KakaoShare] ERROR 레벨 - 렌더링 중')
 
     return (
         <div style={{
@@ -376,6 +401,7 @@ export default function KakaoShare(props: KakaoShareProps) {
                 type="button"
                 onClick={handleShare}
                 disabled={!isReadyToShare}
+                onMouseEnter={() => console.log('[KakaoShare] 버튼 마우스 오버')}
                 style={{
                     width: '60%',
                     height: '100%',
@@ -391,7 +417,7 @@ export default function KakaoShare(props: KakaoShareProps) {
                     opacity: isReadyToShare ? 1 : 0.6,
                 }}
             >
-                카카오톡으로 공유하기
+                카카오톡으로 공유하기 {!isReadyToShare && '(비활성화)'}
             </button>
         </div>
     )
