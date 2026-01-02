@@ -179,8 +179,25 @@ export default function KakaoShare(props: KakaoShareProps) {
     // 폰트 패밀리 설정 (typography.js에서 가져온 폰트 스택 사용)
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
 
+    // 컴포넌트 마운트 확인
     useEffect(() => {
+        console.log('[KakaoShare] ===== 컴포넌트 마운트됨 =====')
+        console.log('[KakaoShare] props:', { pageId, userUrl })
+        console.log('[KakaoShare] window.Kakao 존재:', typeof window !== 'undefined' && !!(window as any).Kakao)
+        if (typeof window !== 'undefined' && (window as any).Kakao) {
+            const kakao = (window as any).Kakao
+            console.log('[KakaoShare] Kakao 객체:', kakao)
+            console.log('[KakaoShare] Kakao.isInitialized 함수:', typeof kakao.isInitialized)
+            if (typeof kakao.isInitialized === 'function') {
+                console.log('[KakaoShare] Kakao.isInitialized() 결과:', kakao.isInitialized())
+            }
+        }
+    }, [])
+
+    useEffect(() => {
+        console.log('[KakaoShare] 데이터 로딩 시작, pageId:', pageId)
         if (!pageId) {
+            console.warn('[KakaoShare] pageId가 없어서 데이터 로딩 중단')
             setSettings(null)
             setInviteData(null)
             return
@@ -189,12 +206,18 @@ export default function KakaoShare(props: KakaoShareProps) {
 
         // page-settings 데이터 가져오기
         void fetchPageSettings(pageId).then((data) => {
+            console.log('[KakaoShare] page-settings 로드 완료:', data ? '성공' : '실패', data)
             if (!cancelled) setSettings(data)
+        }).catch((error) => {
+            console.error('[KakaoShare] page-settings 로드 실패:', error)
         })
 
         // invite 데이터 가져오기
         void fetchInviteData(pageId).then((data) => {
+            console.log('[KakaoShare] invite 데이터 로드 완료:', data ? '성공' : '실패', data)
             if (!cancelled) setInviteData(data)
+        }).catch((error) => {
+            console.error('[KakaoShare] invite 데이터 로드 실패:', error)
         })
 
         return () => {
@@ -242,7 +265,11 @@ export default function KakaoShare(props: KakaoShareProps) {
     }, [])
 
     const templateArgs = useMemo(() => {
-        if (!settings) return null
+        console.log('[KakaoShare] templateArgs 계산 시작, settings:', settings)
+        if (!settings) {
+            console.log('[KakaoShare] templateArgs: settings가 없어서 null 반환')
+            return null
+        }
 
         // 신랑/신부 이름: inviteData 우선, 없으면 page_settings에서 가져옴
         const groomName =
@@ -278,13 +305,15 @@ export default function KakaoShare(props: KakaoShareProps) {
         const publicSlug = (userUrl || pageId).trim()
         const pathWithDate = formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
 
-        return {
+        const args = {
             WEDDING_IMAGE: imageUrl,
             CUSTOM_TITLE: customTitle,
             CUSTOM_BODY: customBody,
             WEDDING_URL: pathWithDate, // 날짜/page_id 형태 전달
         }
-    }, [settings, inviteData, pageId])
+        console.log('[KakaoShare] templateArgs 계산 완료:', args)
+        return args
+    }, [settings, inviteData, pageId, userUrl])
 
     // 템플릿 ID 고정값
     const templateId = "124666"

@@ -50,11 +50,23 @@ export default function RootLayout({
           crossOrigin="anonymous"
           strategy="afterInteractive"
           onLoad={() => {
+            console.log('[layout.tsx] 카카오 SDK 스크립트 로드 완료')
             if (typeof window !== 'undefined' && (window as any).Kakao) {
-              if (!(window as any).Kakao.isInitialized()) {
-                (window as any).Kakao.init('db63a9b37174b5a425a21d797318dff8')
+              console.log('[layout.tsx] window.Kakao 존재 확인')
+              const kakao = (window as any).Kakao
+              if (kakao.isInitialized && !kakao.isInitialized()) {
+                console.log('[layout.tsx] 카카오 SDK 초기화 시작')
+                kakao.init('db63a9b37174b5a425a21d797318dff8')
+                console.log('[layout.tsx] 카카오 SDK 초기화 완료')
+              } else {
+                console.log('[layout.tsx] 카카오 SDK 이미 초기화됨')
               }
+            } else {
+              console.error('[layout.tsx] window.Kakao를 찾을 수 없음')
             }
+          }}
+          onError={(error) => {
+            console.error('[layout.tsx] 카카오 SDK 스크립트 로드 실패:', error)
           }}
         />
         {/* 카카오 맵 SDK */}
