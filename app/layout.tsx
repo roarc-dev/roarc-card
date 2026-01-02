@@ -42,7 +42,28 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {/* 카카오 SDK 스크립트 */}
+        <Script
+          src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
+          integrity="sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+          onLoad={() => {
+            if (typeof window !== 'undefined' && (window as any).Kakao) {
+              if (!(window as any).Kakao.isInitialized()) {
+                (window as any).Kakao.init('db63a9b37174b5a425a21d797318dff8')
+              }
+            }
+          }}
+        />
+        {/* 카카오 맵 SDK */}
+        <Script
+          src="//dapi.kakao.com/v2/maps/sdk.js?appkey=db63a9b37174b5a425a21d797318dff8"
+          strategy="afterInteractive"
+        />
+        {children}
+      </body>
     </html>
   )
 }
