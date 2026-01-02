@@ -391,6 +391,7 @@ export default function InviteName(props: InviteNameProps) {
                 <div
                     style={{
                         width: "fit-content",
+                        whiteSpace: "nowrap",
                         display: "flex",
                         justifyContent: "center",
                         alignItems: "flex-start",
@@ -616,7 +617,7 @@ export default function InviteName(props: InviteNameProps) {
                             width: "100%",
                             flexDirection: "column",
                             justifyContent: "flex-start",
-                            alignItems: "flex-start",
+                            alignItems: "center",
                             display: "inline-flex",
                         }}
                     >
@@ -627,9 +628,7 @@ export default function InviteName(props: InviteNameProps) {
                                 ...pretendardSemiBoldStyle,
                                 lineHeight: "32px",
                                 wordWrap: "break-word",
-                                wordBreak: "break-word",
-                                textAlign: "left",
-                                maxWidth: "4ch",
+                                textAlign: "center",
                             }}
                         >
                             {weddingData.groomName || ""}
@@ -641,9 +640,7 @@ export default function InviteName(props: InviteNameProps) {
                                 ...pretendardSemiBoldStyle,
                                 lineHeight: "32px",
                                 wordWrap: "break-word",
-                                wordBreak: "break-word",
-                                textAlign: "left",
-                                maxWidth: "4ch",
+                                textAlign: "center",
                             }}
                         >
                             {weddingData.brideName || ""}
