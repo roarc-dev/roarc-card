@@ -791,7 +791,7 @@ const ContactItem = React.memo(function ContactItem({
                             wordWrap: "break-word",
                             wordBreak: "break-word",
                             textAlign: "left",
-                            maxWidth: "3ch",
+                            maxWidth: "56px",
                         }}
                     >
                         {name}
