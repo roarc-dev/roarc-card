@@ -190,14 +190,16 @@ export default function PhotoSectionProxy(props: PhotoSectionProxyProps) {
                 "토요일",
             ][weekdayIdx]
             const hour24 = parseInt(s.wedding_hour || "0", 10)
+            const minute = parseInt(s.wedding_minute || "0", 10)
+            const minuteStr = minute.toString().padStart(2, "0")
             const periodEn = hour24 < 12 ? "AM" : "PM"
             const periodKr = hour24 < 12 ? "오전" : "오후"
             const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12
             const isEn = effectiveLocale === "en"
             if (isEn) {
-                return `${year}. ${mm}. ${dd}. ${weekdayEn}. ${hour12} ${periodEn}`
+                return `${year}. ${mm}. ${dd}. ${weekdayEn}. ${hour12}:${minuteStr} ${periodEn}`
             }
-            return `${year}. ${mm}. ${dd}. ${weekdayKr} ${periodKr} ${hour12}시`
+            return `${year}. ${mm}. ${dd}. ${weekdayKr} ${periodKr} ${hour12}시 ${minuteStr}분`
         } catch {
             return ""
         }
