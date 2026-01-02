@@ -194,7 +194,29 @@ async function getTransportDetails(pageId: string): Promise<TransportItem[]> {
             console.log('[getTransportDetails] 응답 없음')
             return []
         }
-        const result = await res.json()
+        
+        // Content-Type 확인
+        const contentType = res.headers.get('content-type')
+        console.log('[getTransportDetails] Content-Type:', contentType)
+        
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await res.text()
+            console.warn('[getTransportDetails] JSON이 아닌 응답:', text.substring(0, 200))
+            return []
+        }
+        
+        const text = await res.text()
+        console.log('[getTransportDetails] 응답 텍스트 (처음 500자):', text.substring(0, 500))
+        
+        let result
+        try {
+            result = JSON.parse(text)
+        } catch (parseError) {
+            console.error('[getTransportDetails] JSON 파싱 실패:', parseError)
+            console.error('[getTransportDetails] 응답 텍스트 전체:', text)
+            return []
+        }
+        
         console.log('[getTransportDetails] 응답 데이터:', result)
         
         if (result?.success && Array.isArray(result.data)) {
@@ -209,6 +231,10 @@ async function getTransportDetails(pageId: string): Promise<TransportItem[]> {
         }
     } catch (error) {
         console.error('[getTransportDetails] 에러:', error)
+        if (error instanceof Error) {
+            console.error('[getTransportDetails] 에러 메시지:', error.message)
+            console.error('[getTransportDetails] 에러 스택:', error.stack)
+        }
         return []
     }
     return []
