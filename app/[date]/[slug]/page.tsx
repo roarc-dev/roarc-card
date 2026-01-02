@@ -8,7 +8,7 @@ import {
 import WeddingPage from '@/components/WeddingPage'
 
 interface PageProps {
-  params: { date: string; slug: string } // slug는 실제로 pageId
+  params: Promise<{ date: string; slug: string }> | { date: string; slug: string } // slug는 실제로 pageId
 }
 
 /**
@@ -16,7 +16,9 @@ interface PageProps {
  * - SEO 및 카카오톡 공유 시 미리보기에 사용
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params // slug는 pageId
+  // Next.js 15+에서는 params가 Promise일 수 있음
+  const resolvedParams = await Promise.resolve(params)
+  const { slug } = resolvedParams // slug는 pageId
 
   // pageId로만 조회
   const pageSettings = await getPageSettingsByPageId(slug)
@@ -65,9 +67,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * - 단순히 pageId로 조회하여 페이지 렌더링 (redirect 없음)
  */
 export default async function Page({ params }: PageProps) {
-  const { date, slug } = params // slug는 실제로 pageId
+  // Next.js 15+에서는 params가 Promise일 수 있음
+  const resolvedParams = await Promise.resolve(params)
+  const { date, slug } = resolvedParams // slug는 실제로 pageId
 
-  console.log('[app/[date]/[slug]] Page called with:', { date, slug })
+  console.log('[app/[date]/[slug]] Page called with:', { date, slug, rawParams: params })
 
   // 유효성 검사
   if (!slug || slug.length < 1) {
