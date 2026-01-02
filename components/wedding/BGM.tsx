@@ -408,6 +408,8 @@ export default function BGM(props: BGMProps) {
                   ? '0px'
                   : '0px',
         backgroundColor: bgmType === 'papillon' ? '#ffffff' : '#fff',
+        position: 'relative' as const, // 알림 메시지 위치 기준
+        overflow: 'hidden' as const, // 컨테이너 영역 밖으로 나가지 않도록
         ...style,
     }
 
@@ -471,6 +473,8 @@ export default function BGM(props: BGMProps) {
                         left: 0,
                         right: 0,
                         bottom: 0,
+                        width: '100%',
+                        height: '100%',
                         backgroundColor: 'rgba(0, 0, 0, 0.7)',
                         display: 'flex',
                         alignItems: 'center',
