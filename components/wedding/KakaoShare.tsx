@@ -231,38 +231,80 @@ export default function KakaoShare(props: KakaoShareProps) {
         }
     }, [pageId])
 
-    // 카카오 SDK 초기화 확인
+    // 카카오 SDK 초기화 확인 및 재시도 로직
     useEffect(() => {
         const checkKakaoReady = () => {
-            if (typeof window !== 'undefined' && (window as any).Kakao) {
-                const kakao = (window as any).Kakao
-                console.log('[KakaoShare] Kakao 객체 존재:', !!kakao)
-                console.log('[KakaoShare] Kakao.isInitialized 함수 존재:', typeof kakao.isInitialized === 'function')
-                if (kakao.isInitialized && kakao.isInitialized()) {
+            if (typeof window === 'undefined') {
+                console.log('[KakaoShare] window가 undefined')
+                return false
+            }
+
+            const kakao = (window as any).Kakao
+            if (!kakao) {
+                console.log('[KakaoShare] window.Kakao 없음')
+                return false
+            }
+
+            console.log('[KakaoShare] Kakao 객체 존재:', !!kakao)
+            console.log('[KakaoShare] Kakao.Share 존재:', !!(kakao.Share))
+            console.log('[KakaoShare] Kakao.isInitialized 함수 존재:', typeof kakao.isInitialized === 'function')
+
+            // isInitialized 함수가 있는 경우
+            if (typeof kakao.isInitialized === 'function') {
+                const initialized = kakao.isInitialized()
+                console.log('[KakaoShare] Kakao.isInitialized() 결과:', initialized)
+                
+                if (initialized) {
                     console.log('[KakaoShare] Kakao SDK 초기화 완료')
                     setKakaoReady(true)
-                    return
+                    return true
                 } else {
-                    console.log('[KakaoShare] Kakao SDK 초기화 안됨')
+                    // 초기화되지 않은 경우 재시도
+                    console.log('[KakaoShare] Kakao SDK 초기화 안됨, 재시도')
+                    try {
+                        kakao.init('db63a9b37174b5a425a21d797318dff8')
+                        if (kakao.isInitialized()) {
+                            console.log('[KakaoShare] 재초기화 성공')
+                            setKakaoReady(true)
+                            return true
+                        }
+                    } catch (error) {
+                        console.error('[KakaoShare] 재초기화 실패:', error)
+                    }
                 }
             } else {
-                console.log('[KakaoShare] window.Kakao 없음')
+                // isInitialized 함수가 없는 경우 (구버전 SDK 또는 로드 중)
+                console.log('[KakaoShare] isInitialized 함수 없음, Share 모듈 확인')
+                if (kakao.Share) {
+                    // Share 모듈이 있으면 초기화된 것으로 간주
+                    console.log('[KakaoShare] Share 모듈 존재, 초기화된 것으로 간주')
+                    setKakaoReady(true)
+                    return true
+                }
             }
+
             setKakaoReady(false)
+            return false
         }
 
         // 초기 체크
-        checkKakaoReady()
+        if (checkKakaoReady()) {
+            return // 이미 준비되었으면 종료
+        }
 
         // 주기적으로 체크 (SDK 로드 대기)
-        const interval = setInterval(checkKakaoReady, 100)
+        const interval = setInterval(() => {
+            if (checkKakaoReady()) {
+                clearInterval(interval)
+            }
+        }, 200) // 200ms마다 체크
 
-        // 최대 5초 대기
+        // 최대 10초 대기
         const timeout = setTimeout(() => {
             clearInterval(interval)
             checkKakaoReady()
-            console.log('[KakaoShare] SDK 로드 대기 완료 (5초)')
-        }, 5000)
+            console.log('[KakaoShare] SDK 로드 대기 완료 (10초)')
+        }, 10000)
 
         return () => {
             clearInterval(interval)
@@ -355,29 +397,55 @@ export default function KakaoShare(props: KakaoShareProps) {
         console.log('[KakaoShare] templateArgs:', templateArgs)
         console.log('[KakaoShare] kakao:', kakao)
         
-        if (!isReadyToShare || !templateArgs) {
-            console.error('🔴 [KakaoShare] 공유 불가 - 조건 미충족')
-            console.log('[KakaoShare] 조건 체크:', {
-                isReadyToShare,
-                hasTemplateArgs: !!templateArgs,
-                hasKakao: !!kakao,
-                kakaoReady,
-                kakaoInitialized: kakao?.isInitialized ? kakao.isInitialized() : false,
-            })
-            alert('카카오톡 공유를 위해 필요한 설정이 준비되지 않았습니다.')
+        // 카카오 SDK 재확인
+        const currentKakao = typeof window !== 'undefined' ? (window as any).Kakao : undefined
+        if (!currentKakao) {
+            console.error('🔴 [KakaoShare] window.Kakao를 찾을 수 없음')
+            alert('카카오 SDK가 로드되지 않았습니다. 페이지를 새로고침해주세요.')
             return
+        }
+
+        if (!currentKakao.Share) {
+            console.error('🔴 [KakaoShare] Kakao.Share 모듈을 찾을 수 없음')
+            alert('카카오톡 공유 모듈을 찾을 수 없습니다. 페이지를 새로고침해주세요.')
+            return
+        }
+
+        if (!templateArgs) {
+            console.error('🔴 [KakaoShare] templateArgs가 없음')
+            alert('공유할 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
+            return
+        }
+
+        // isInitialized 확인 및 재초기화 시도
+        if (typeof currentKakao.isInitialized === 'function' && !currentKakao.isInitialized()) {
+            console.log('[KakaoShare] SDK 미초기화, 재초기화 시도')
+            try {
+                currentKakao.init('db63a9b37174b5a425a21d797318dff8')
+            } catch (error) {
+                console.error('[KakaoShare] 재초기화 실패:', error)
+            }
         }
 
         try {
             console.log('[KakaoShare] 카카오톡 공유 시도')
-            kakao!.Share.sendCustom({
+            console.log('[KakaoShare] templateId:', templateId)
+            console.log('[KakaoShare] templateArgs:', templateArgs)
+            
+            // 카카오 개발자 문서에 따른 sendCustom 사용
+            // https://developers.kakao.com/docs/latest/ko/kakaotalk-share/js-link
+            currentKakao.Share.sendCustom({
                 templateId: Number(templateId),
-                templateArgs,
+                templateArgs: templateArgs,
             })
             console.log('[KakaoShare] 카카오톡 공유 성공')
         } catch (error) {
             console.error('🔴 [KakaoShare] 카카오톡 공유 실패', error)
-            alert('카카오톡 공유 중 오류가 발생했습니다.')
+            if (error instanceof Error) {
+                console.error('[KakaoShare] 에러 메시지:', error.message)
+                console.error('[KakaoShare] 에러 스택:', error.stack)
+            }
+            alert(`카카오톡 공유 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
         }
     }
 
