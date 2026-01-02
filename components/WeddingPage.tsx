@@ -13,6 +13,7 @@ import PhotoSectionProxy from '@/components/wedding/PhotoSectionProxy'
 import WeddingInvitationSection from '@/components/wedding/WeddingInvitationSection'
 import CalendarSection from '@/components/wedding/CalendarSection'
 import LocationUnified from '@/components/wedding/LocationUnified'
+import UnifiedGalleryComplete from '@/components/wedding/UnifiedGalleryComplete'
 import CommentBoard from '@/components/wedding/CommentBoard'
 import Account from '@/components/wedding/Account'
 import Info from '@/components/wedding/Info'
@@ -108,6 +109,13 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
             style={{ width: '100%' }}
           />
         )
+      case 'UnifiedGalleryComplete':
+        return (
+          <UnifiedGalleryComplete
+            key={`${type}-${index}`}
+            pageId={pageId}
+          />
+        )
       case 'CommentBoard':
         return (
           <CommentBoard
@@ -147,7 +155,6 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
 
       // 아직 연결되지 않은 컴포넌트 - Placeholder로 표시
       case 'CalendarAddBtn':
-      case 'UnifiedGalleryComplete':
       case 'rsvpResult':
       case 'CommentBoard':
       case 'KakaoShare':
