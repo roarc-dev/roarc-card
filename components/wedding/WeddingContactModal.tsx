@@ -105,8 +105,9 @@ export default function WeddingContactModal({ pageId, style }: WeddingContactMod
                             transition={{ duration: 0.2 }}
                             style={{
                                 maxWidth: '400px',
-                                width: '90%',
+                                width: 'fit-content',
                                 maxHeight: '80vh',
+                                backgroundColor: '#ffffff',
                             }}
                             onClick={(e) => e.stopPropagation()} // 모달 내부 클릭 시 닫히지 않도록
                         >

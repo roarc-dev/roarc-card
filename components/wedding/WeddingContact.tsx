@@ -333,12 +333,12 @@ export default function WeddingContact(props: WeddingContactProps) {
                     },
                 }}
                 style={{
-                    backgroundColor: "white",
+                    backgroundColor: "#ffffff",
                     borderRadius: "10px",
                     padding: "20px",
-                    width: "280px",
+                    width: "fit-content",
                     minWidth: "280px",
-                    maxWidth: "280px",
+                    maxWidth: "400px",
                     maxHeight: "80vh",
                     overflow: "auto",
                     position: "relative",
