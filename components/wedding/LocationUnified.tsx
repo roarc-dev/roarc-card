@@ -170,25 +170,16 @@ async function getTransportDetails(pageId: string): Promise<TransportItem[]> {
         return []
     }
     try {
-        const bases = [
-            typeof window !== "undefined" ? window.location.origin : "",
-            PROXY_BASE_URL,
-        ].filter(Boolean)
+        // Next.js 앱에서는 PROXY_BASE_URL만 사용 (로컬 origin은 Next.js 페이지로 인식됨)
+        const url = `${PROXY_BASE_URL}/api/page-settings?transport&pageId=${encodeURIComponent(pageId)}`
+        console.log('[getTransportDetails] API 호출 시작:', { pageId, url })
         
-        console.log('[getTransportDetails] API 호출 시작:', { pageId, bases })
+        const res = await fetch(url)
+        console.log('[getTransportDetails] 응답 상태:', res.status, res.ok)
         
-        let res = null
-        for (const base of bases) {
-            try {
-                const url = `${base}/api/page-settings?transport&pageId=${encodeURIComponent(pageId)}`
-                console.log('[getTransportDetails] 시도:', url)
-                const tryRes = await fetch(url)
-                console.log('[getTransportDetails] 응답 상태:', tryRes.status, tryRes.ok)
-                res = tryRes
-                if (tryRes.ok) break
-            } catch (error) {
-                console.error('[getTransportDetails] fetch 에러:', error)
-            }
+        if (!res.ok) {
+            console.warn('[getTransportDetails] 응답 실패:', res.status, res.statusText)
+            return []
         }
         if (!res) {
             console.log('[getTransportDetails] 응답 없음')
