@@ -72,11 +72,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function Page({ params }: PageProps) {
   const { date, slug } = params
 
-  if (!slug || slug.length < 1) notFound()
-  if (!date || date.length < 1) notFound()
+  // 디버깅 로그 (프로덕션에서도 확인 가능하도록)
+  console.log('[app/[date]/[slug]] Processing:', { date, slug })
+
+  if (!slug || slug.length < 1) {
+    console.log('[app/[date]/[slug]] Invalid slug')
+    notFound()
+  }
+  if (!date || date.length < 1) {
+    console.log('[app/[date]/[slug]] Invalid date')
+    notFound()
+  }
 
   const isoFromSegment = parseDateSegmentToIso(date)
-  if (!isoFromSegment) notFound()
+  if (!isoFromSegment) {
+    console.log('[app/[date]/[slug]] Failed to parse date:', date)
+    notFound()
+  }
 
   // user_url로 먼저 시도, 없으면 page_id로 시도
   let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(slug)
@@ -84,7 +96,15 @@ export default async function Page({ params }: PageProps) {
     pageSettings = await getPageSettingsByPageId(slug)
   }
 
-  if (!pageSettings) notFound()
+  if (!pageSettings) {
+    console.log('[app/[date]/[slug]] Page settings not found for slug:', slug)
+    notFound()
+  }
+
+  console.log('[app/[date]/[slug]] Page settings found:', { 
+    page_id: pageSettings.page_id, 
+    wedding_date: pageSettings.wedding_date 
+  })
 
   // user_url이 있고 현재 slug가 user_url이면 그대로 사용
   // user_url이 있지만 현재 slug가 page_id면 user_url로 redirect

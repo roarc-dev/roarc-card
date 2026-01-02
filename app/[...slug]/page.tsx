@@ -138,10 +138,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function Page({ params }: PageProps) {
   const slugArray = params.slug || []
   
+  // 디버깅 로그
+  console.log('[app/[...slug]] Processing:', { slugArray })
+  
   // 날짜 형식이 포함된 경로는 app/[date]/[slug]/page.tsx에서 처리되어야 함
   // 여기서는 단일 slug만 처리
   if (slugArray.length >= 2 && /^\d{6}$/.test(slugArray[0])) {
     // 날짜 형식이 포함된 경로는 여기서 처리하지 않음 (app/[date]/[slug]로 위임)
+    console.log('[app/[...slug]] Date format detected, delegating to app/[date]/[slug]')
     notFound()
   }
   
