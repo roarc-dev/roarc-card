@@ -205,22 +205,19 @@ export default function KakaoShare(props: KakaoShareProps) {
         }
     }, [pageId])
 
-    // 카카오 SDK 로드 및 초기화 (개선된 버전)
+    // 카카오 SDK 초기화 확인 (layout.tsx에서 이미 로드됨)
     useEffect(() => {
         if (typeof window === 'undefined') return
 
-        console.log('[KakaoShare] SDK 초기화 시작')
+        console.log('[KakaoShare] SDK 초기화 확인 시작')
 
-        // SDK가 이미 로드되어 있는지 확인
-        const checkAndInitialize = () => {
+        const checkSDKReady = () => {
             const kakao = window.Kakao
             if (!kakao) {
-                console.log('[KakaoShare] Kakao SDK 없음')
+                console.log('[KakaoShare] Kakao SDK 아직 로드되지 않음')
                 return false
             }
 
-            // Kakao SDK는 중복 init 호출 시 경고만 발생하고 정상 작동
-            // isInitialized 메서드는 실제로 존재하지 않음
             try {
                 // _initializedAppKey는 내부 속성으로 초기화 여부 확인 가능
                 if (!kakao._initializedAppKey) {
@@ -245,56 +242,25 @@ export default function KakaoShare(props: KakaoShareProps) {
             }
         }
 
-        // 즉시 확인 (이미 로드된 경우)
-        if (checkAndInitialize()) {
+        // 즉시 확인
+        if (checkSDKReady()) {
             return
         }
 
-        // 스크립트 로드 필요
-        const scriptSelector = `script[src="${KAKAO_SDK_URL}"]`
-        let script = document.querySelector<HTMLScriptElement>(scriptSelector)
-
-        const handleLoad = () => {
-            console.log('[KakaoShare] SDK 스크립트 로드 완료')
-            // 약간의 지연 후 초기화 (SDK가 완전히 준비되도록)
-            setTimeout(() => {
-                checkAndInitialize()
-            }, 100)
-        }
-
-        const handleError = (event: Event) => {
-            console.error('[KakaoShare] SDK 스크립트 로드 실패', event)
-            setKakaoReady(false)
-        }
-
-        if (script) {
-            // 스크립트가 이미 있는 경우
-            // Kakao SDK가 이미 로드되었는지 확인
-            if (window.Kakao && window.Kakao.Share) {
-                // 이미 로드 완료
-                handleLoad()
-            } else {
-                // 로드 중
-                script.addEventListener('load', handleLoad)
-                script.addEventListener('error', handleError)
+        // SDK 로드를 기다림 (최대 10초)
+        let attempts = 0
+        const maxAttempts = 100 // 100 * 100ms = 10초
+        const interval = setInterval(() => {
+            attempts++
+            if (checkSDKReady() || attempts >= maxAttempts) {
+                clearInterval(interval)
+                if (attempts >= maxAttempts) {
+                    console.error('[KakaoShare] SDK 로드 대기 시간 초과')
+                }
             }
-        } else {
-            // 새 스크립트 생성
-            script = document.createElement('script')
-            script.src = KAKAO_SDK_URL
-            script.async = true
-            script.crossOrigin = 'anonymous'
-            script.integrity =
-                'sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka'
-            script.addEventListener('load', handleLoad)
-            script.addEventListener('error', handleError)
-            document.head.appendChild(script)
-        }
+        }, 100)
 
-        return () => {
-            script?.removeEventListener('load', handleLoad)
-            script?.removeEventListener('error', handleError)
-        }
+        return () => clearInterval(interval)
     }, [])
 
     const templateArgs = useMemo(() => {
