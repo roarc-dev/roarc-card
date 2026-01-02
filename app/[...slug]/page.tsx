@@ -4,7 +4,7 @@ import { getPageSettingsByUserUrl, getPageSettingsByPageId, PageSettings } from 
 import WeddingPage from '@/components/WeddingPage'
 
 interface PageProps {
-  params: { pageId: string }
+  params: { slug: string[] }
 }
 
 /**
@@ -12,10 +12,22 @@ interface PageProps {
  * - SEO 및 카카오톡 공유 시 미리보기에 사용
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { pageId } = params
+  const slugArray = params.slug || []
+  
+  // 날짜 형식이 포함된 경로는 app/[date]/[slug]/page.tsx에서 처리되어야 함
+  if (slugArray.length >= 2 && /^\d{6}$/.test(slugArray[0])) {
+    // 날짜 형식이 포함된 경로는 여기서 처리하지 않음
+    return {
+      title: 'roarc mobile card',
+      description: 'We make Romantic Art Creations',
+    }
+  }
+  
+  // 단일 slug만 처리
+  const slug = slugArray[0] || ''
 
   // 로컬 개발 환경에서 "taehohoho"는 더미 데이터를 사용
-  if (process.env.NODE_ENV === 'development' && pageId === 'taehohoho') {
+  if (process.env.NODE_ENV === 'development' && slug === 'taehohoho') {
     const dummyPageSettings: PageSettings = {
       id: 'dummy-dev-id',
       page_id: 'taehohoho',
@@ -72,9 +84,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   // user_url로 먼저 조회, 없으면 page_id로 조회
-  let pageSettings = await getPageSettingsByUserUrl(pageId)
+  let pageSettings = await getPageSettingsByUserUrl(slug)
   if (!pageSettings) {
-    pageSettings = await getPageSettingsByPageId(pageId)
+    pageSettings = await getPageSettingsByPageId(slug)
   }
   
   if (!pageSettings) {
@@ -117,20 +129,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /**
  * 동적 라우팅 페이지
  * 
- * URL: /[pageId]
- * - pageId는 user_url (사용자 지정 URL) 또는 page_id (UUID)
+ * URL: /[...slug]
+ * - 단일 slug만 처리: ['slug'] 형식
+ * - 날짜가 포함된 경로(/YYMMDD/slug)는 app/[date]/[slug]/page.tsx에서 처리됨
+ * - slug는 user_url (사용자 지정 URL) 또는 page_id (UUID)
  * - user_url을 먼저 조회하고, 없으면 page_id로 조회
  */
 export default async function Page({ params }: PageProps) {
-  const { pageId } = params
+  const slugArray = params.slug || []
+  
+  // 날짜 형식이 포함된 경로는 app/[date]/[slug]/page.tsx에서 처리되어야 함
+  // 여기서는 단일 slug만 처리
+  if (slugArray.length >= 2 && /^\d{6}$/.test(slugArray[0])) {
+    // 날짜 형식이 포함된 경로는 여기서 처리하지 않음 (app/[date]/[slug]로 위임)
+    notFound()
+  }
+  
+  // 단일 slug만 처리
+  const slug = slugArray[0] || ''
 
   // 유효성 검사
-  if (!pageId || pageId.length < 1) {
+  if (!slug || slug.length < 1) {
     notFound()
   }
 
   // 로컬 개발 환경에서 "taehohoho"는 더미 데이터를 사용
-  if (process.env.NODE_ENV === 'development' && pageId === 'taehohoho') {
+  if (process.env.NODE_ENV === 'development' && slug === 'taehohoho') {
     const dummyPageSettings: PageSettings = {
       id: 'dummy-dev-id',
       page_id: 'taehohoho',
@@ -160,11 +184,11 @@ export default async function Page({ params }: PageProps) {
 
   // 페이지 설정 조회
   // 1. user_url로 먼저 시도 (사용자 친화적 URL)
-  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(pageId)
+  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(slug)
 
   // 2. user_url로 찾지 못하면 page_id로 시도 (UUID)
   if (!pageSettings) {
-    pageSettings = await getPageSettingsByPageId(pageId)
+    pageSettings = await getPageSettingsByPageId(slug)
   }
 
   // 페이지를 찾지 못한 경우

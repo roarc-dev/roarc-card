@@ -1,5 +1,12 @@
 // 프록시 서버 URL (기존 API와 연동) - Supabase 직접 연결 대신 PROXY 사용
-export const PROXY_BASE_URL = process.env.NEXT_PUBLIC_PROXY_URL || 'https://wedding-admin-proxy.vercel.app'
+const envProxyUrl = process.env.NEXT_PUBLIC_PROXY_URL
+export const PROXY_BASE_URL = envProxyUrl || 'https://wedding-admin-proxy.vercel.app'
+
+// 개발 환경에서 환경 변수 로드 확인
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('[supabase.ts] PROXY_BASE_URL:', PROXY_BASE_URL)
+  console.log('[supabase.ts] NEXT_PUBLIC_PROXY_URL from env:', envProxyUrl || 'NOT SET (using default)')
+}
 
 /**
  * 페이지 설정 데이터 타입

@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import {
   formatWeddingDateToSegment,
+  getPageSettingsByUserUrl,
   getPageSettingsByPageId,
   PageSettings,
   parseDateSegmentToIso,
@@ -9,7 +10,7 @@ import {
 import WeddingPage from '@/components/WeddingPage'
 
 interface PageProps {
-  params: { date: string; pageId: string }
+  params: { date: string; slug: string }
 }
 
 /**
@@ -17,10 +18,13 @@ interface PageProps {
  * - SEO 및 카카오톡 공유 시 미리보기에 사용
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { pageId } = params
+  const { slug } = params
 
-  // page_id로 조회 (proxy 기준)
-  const pageSettings = await getPageSettingsByPageId(pageId)
+  // user_url로 먼저 시도, 없으면 page_id로 시도
+  let pageSettings = await getPageSettingsByUserUrl(slug)
+  if (!pageSettings) {
+    pageSettings = await getPageSettingsByPageId(slug)
+  }
 
   if (!pageSettings) {
     return {
@@ -60,26 +64,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /**
  * 동적 라우팅 페이지
  *
- * URL: /[YYMMDD]/[pageId]
- * - 예: /261221/minjunseoyun
- * - pageId는 page_settings.page_id에 매칭되는 값
- * - date 세그먼트는 wedding_date(YYYY-MM-DD)에서 파생된 YYMMDD와 일치해야 함 (불일치 시 canonical로 redirect)
+ * URL: /[YYMMDD]/[slug]
+ * - 예: /261221/minjunseoyun 또는 /261221/page-id-uuid
+ * - slug는 user_url 또는 page_id 모두 가능
+ * - date 세그먼트는 wedding_date(YYYY-MM-DD)에서 파생된 YYMMDD와 일치해야 함
  */
 export default async function Page({ params }: PageProps) {
-  const { date, pageId } = params
+  const { date, slug } = params
 
-  if (!pageId || pageId.length < 1) notFound()
+  if (!slug || slug.length < 1) notFound()
   if (!date || date.length < 1) notFound()
 
   const isoFromSegment = parseDateSegmentToIso(date)
   if (!isoFromSegment) notFound()
 
-  const pageSettings: PageSettings | null = await getPageSettingsByPageId(pageId)
+  // user_url로 먼저 시도, 없으면 page_id로 시도
+  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(slug)
+  if (!pageSettings) {
+    pageSettings = await getPageSettingsByPageId(slug)
+  }
+
   if (!pageSettings) notFound()
 
-  // 신규 canonical: /YYMMDD/userurl
-  // - page_settings 응답에 user_url이 있으면 새 경로로 정규화
-  if (pageSettings.user_url) {
+  // user_url이 있고 현재 slug가 user_url이면 그대로 사용
+  // user_url이 있지만 현재 slug가 page_id면 user_url로 redirect
+  if (pageSettings.user_url && pageSettings.user_url !== slug) {
     redirect(`/${date}/${encodeURIComponent(pageSettings.user_url)}`)
   }
 
@@ -89,14 +98,11 @@ export default async function Page({ params }: PageProps) {
     : null
 
   if (expectedSegment && expectedSegment !== date) {
-    redirect(`/${expectedSegment}/${pageId}`)
+    const redirectSlug = pageSettings.user_url || slug
+    redirect(`/${expectedSegment}/${encodeURIComponent(redirectSlug)}`)
   }
 
-  // wedding_date가 없더라도, URL date는 유효한 날짜로만 허용 (위에서 검증)
-  // isoFromSegment는 현재 로직상 직접 사용되진 않지만, 잘못된 날짜(예: 991332)를 차단하는 역할을 함
   void isoFromSegment
 
   return <WeddingPage pageSettings={pageSettings} />
 }
-
-

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from "react"
+import { PROXY_BASE_URL } from '@/lib/supabase'
 
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
 const FONT_STACKS = {
@@ -10,9 +11,6 @@ const FONT_STACKS = {
     goldenbook: '"goldenbook", "Goldenbook", serif',
     sloopScriptPro: '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif',
 }
-
-// 프록시 서버 URL (고정된 Production URL)
-const PROXY_BASE_URL = "https://wedding-admin-proxy.vercel.app"
 
 function renderBoldSegments(
     text: string,
