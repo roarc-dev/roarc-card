@@ -35,6 +35,7 @@ export type ComponentType =
 
 // 기본 컴포넌트 순서 (테마별로 다를 수 있음)
 export const DEFAULT_COMPONENT_ORDER: ComponentType[] = [
+  'bgm',                  // 배경음악 (맨 위에 위치)
   'NameSection',
   'PhotoSectionProxy',
   'Info',

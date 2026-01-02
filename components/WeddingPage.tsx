@@ -159,7 +159,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
       case 'rsvpResult':
       case 'CommentBoard':
       case 'KakaoShare':
-      case 'bgm':
+      // 'bgm'은 위에서 이미 처리되므로 여기서 제외
       case 'EternalDateVenue':
       case 'EternalMainPhoto':
       case 'EternalNameSection':
