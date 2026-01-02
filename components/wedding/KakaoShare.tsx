@@ -278,15 +278,8 @@ export default function KakaoShare(props: KakaoShareProps) {
         }
     }, [settings, inviteData, pageId])
 
-    // templateId를 page_settings에서 가져오기
-    const templateId = useMemo(() => {
-        if (!settings) return null
-        const id = settings.kakao_template_id || settings.template_id
-        if (id) {
-            return String(id)
-        }
-        return null
-    }, [settings])
+    // 템플릿 ID 고정값
+    const templateId = "124666"
 
     const kakao = typeof window !== 'undefined' ? window.Kakao : undefined
 
