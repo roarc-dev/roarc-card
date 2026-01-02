@@ -281,6 +281,77 @@ function Info({
     // 로컬 개발에서는 더미 데이터 사용
     const isDevelopment = process.env.NODE_ENV === 'development'
 
+    // info_item 테이블에서 데이터 가져오기
+    const getInfoItems = useCallback(async (pageId: string): Promise<InfoItem[]> => {
+        if (!pageId) {
+            console.log('[getInfoItems] pageId가 없음')
+            return []
+        }
+        try {
+            // Next.js 앱에서는 PROXY_BASE_URL만 사용 (로컬 origin은 Next.js 페이지로 인식됨)
+            const url = `${PROXY_BASE_URL}/api/page-settings?info&pageId=${encodeURIComponent(pageId)}`
+            console.log('[getInfoItems] API 호출 시작:', { pageId, url })
+            
+            const res = await fetch(url, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+            })
+            console.log('[getInfoItems] 응답 상태:', res.status, res.ok)
+            
+            if (!res.ok) {
+                console.warn('[getInfoItems] 응답 실패:', res.status, res.statusText)
+                return []
+            }
+            if (!res) {
+                console.log('[getInfoItems] 응답 없음')
+                return []
+            }
+            
+            // Content-Type 확인
+            const contentType = res.headers.get('content-type')
+            console.log('[getInfoItems] Content-Type:', contentType)
+            
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await res.text()
+                console.warn('[getInfoItems] JSON이 아닌 응답:', text.substring(0, 200))
+                return []
+            }
+            
+            const text = await res.text()
+            console.log('[getInfoItems] 응답 텍스트 (처음 500자):', text.substring(0, 500))
+            
+            let result
+            try {
+                result = JSON.parse(text)
+            } catch (parseError) {
+                console.error('[getInfoItems] JSON 파싱 실패:', parseError)
+                console.error('[getInfoItems] 응답 텍스트 전체:', text)
+                return []
+            }
+            
+            console.log('[getInfoItems] 응답 데이터:', result)
+            
+            if (result?.success && Array.isArray(result.data)) {
+                console.log('[getInfoItems] 성공, 항목 수:', result.data.length)
+                return result.data
+            } else {
+                console.warn('[getInfoItems] 응답 형식 오류:', {
+                    success: result?.success,
+                    isArray: Array.isArray(result?.data),
+                    data: result?.data
+                })
+            }
+        } catch (error) {
+            console.error('[getInfoItems] 에러:', error)
+            if (error instanceof Error) {
+                console.error('[getInfoItems] 에러 메시지:', error.message)
+                console.error('[getInfoItems] 에러 스택:', error.stack)
+            }
+            return []
+        }
+        return []
+    }, [])
+
     // 데이터 로딩
     useEffect(() => {
         if (isDevelopment) {
@@ -308,27 +379,15 @@ function Info({
         async function load() {
             setLoading(true)
             try {
-                const bases = [
-                    typeof window !== "undefined" ? window.location.origin : "",
-                    PROXY_BASE_URL,
-                ].filter(Boolean)
-                let res: Response | null = null
-                for (const base of bases) {
-                    try {
-                        const tryRes = await fetch(
-                            `${base}/api/page-settings?info&pageId=${encodeURIComponent(pageId)}`
-                        )
-                        res = tryRes
-                        if (tryRes.ok) break
-                    } catch {}
-                }
-                if (!res) throw new Error("network error")
-                const result = await res.json()
-                if (mounted && result?.success && Array.isArray(result.data)) {
-                    setInfoItems(result.data)
-                }
-            } catch {
-                // ignore
+                const items = await getInfoItems(pageId)
+                if (!mounted) return
+                setInfoItems(items)
+                console.log('[Info] 데이터 로드 완료:', {
+                    itemsCount: items.length,
+                    items: items
+                })
+            } catch (error) {
+                console.error('[Info] 데이터 로드 에러:', error)
             } finally {
                 if (mounted) setLoading(false)
             }
@@ -337,7 +396,7 @@ function Info({
         return () => {
             mounted = false
         }
-    }, [pageId, isDevelopment])
+    }, [pageId, isDevelopment, getInfoItems])
 
     useEffect(() => {
         if (isDevelopment) return

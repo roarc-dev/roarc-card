@@ -39,12 +39,12 @@ export const DEFAULT_COMPONENT_ORDER: ComponentType[] = [
   'NameSection',
   'PhotoSectionProxy',
   'InviteName',           // 초대 이름 (초대하는 분들)
-  'Info',
   'CalendarProxy',
   'CalendarAddBtn',
   'UnifiedGalleryComplete',
   'LocationUnified',
   'WeddingContact',
+  'Info',
   'Account',
   'RSVPClient',
   'CommentBoard',
