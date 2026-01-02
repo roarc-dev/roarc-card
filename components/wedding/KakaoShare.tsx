@@ -207,10 +207,17 @@ export default function KakaoShare(props: KakaoShareProps) {
         const checkKakaoReady = () => {
             if (typeof window !== 'undefined' && (window as any).Kakao) {
                 const kakao = (window as any).Kakao
+                console.log('[KakaoShare] Kakao 객체 존재:', !!kakao)
+                console.log('[KakaoShare] Kakao.isInitialized 함수 존재:', typeof kakao.isInitialized === 'function')
                 if (kakao.isInitialized && kakao.isInitialized()) {
+                    console.log('[KakaoShare] Kakao SDK 초기화 완료')
                     setKakaoReady(true)
                     return
+                } else {
+                    console.log('[KakaoShare] Kakao SDK 초기화 안됨')
                 }
+            } else {
+                console.log('[KakaoShare] window.Kakao 없음')
             }
             setKakaoReady(false)
         }
@@ -225,6 +232,7 @@ export default function KakaoShare(props: KakaoShareProps) {
         const timeout = setTimeout(() => {
             clearInterval(interval)
             checkKakaoReady()
+            console.log('[KakaoShare] SDK 로드 대기 완료 (5초)')
         }, 5000)
 
         return () => {
@@ -282,6 +290,21 @@ export default function KakaoShare(props: KakaoShareProps) {
     const templateId = "124666"
 
     const kakao = typeof window !== 'undefined' ? window.Kakao : undefined
+
+    // 디버깅: isReadyToShare 조건 체크
+    useEffect(() => {
+        console.log('[KakaoShare] isReadyToShare 조건 체크:', {
+            templateId: !!templateId,
+            templateIdValue: templateId,
+            pageId: !!pageId,
+            pageIdValue: pageId,
+            templateArgs: !!templateArgs,
+            templateArgsValue: templateArgs,
+            kakao: !!kakao,
+            kakaoReady,
+            kakaoInitialized: kakao?.isInitialized ? kakao.isInitialized() : false,
+        })
+    }, [templateId, pageId, templateArgs, kakao, kakaoReady])
 
     const isReadyToShare =
         !!templateId &&
