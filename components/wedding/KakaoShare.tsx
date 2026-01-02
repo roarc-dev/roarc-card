@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { addPropertyControls, ControlType } from 'framer'
 
 import { PROXY_BASE_URL } from '@/lib/supabase'
 
@@ -25,6 +24,8 @@ interface PageSettings {
     wedding_date?: string
     wedding_hour?: string
     wedding_minute?: string
+    kakao_template_id?: string | number
+    template_id?: string | number
 }
 
 interface InviteData {
@@ -149,7 +150,6 @@ function formatWeddingDateTime(settings: PageSettings): string {
 interface KakaoShareProps {
     pageId?: string
     userUrl?: string
-    templateId?: string
     style?: React.CSSProperties
 }
 
@@ -168,10 +168,11 @@ declare global {
 }
 
 export default function KakaoShare(props: KakaoShareProps) {
-    const { pageId = '', userUrl = '', templateId = '', style } = props
+    const { pageId = '', userUrl = '', style } = props
 
     const [settings, setSettings] = useState<PageSettings | null>(null)
     const [inviteData, setInviteData] = useState<InviteData | null>(null)
+    const [kakaoReady, setKakaoReady] = useState(false)
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
@@ -200,6 +201,37 @@ export default function KakaoShare(props: KakaoShareProps) {
             cancelled = true
         }
     }, [pageId])
+
+    // 카카오 SDK 초기화 확인
+    useEffect(() => {
+        const checkKakaoReady = () => {
+            if (typeof window !== 'undefined' && (window as any).Kakao) {
+                const kakao = (window as any).Kakao
+                if (kakao.isInitialized && kakao.isInitialized()) {
+                    setKakaoReady(true)
+                    return
+                }
+            }
+            setKakaoReady(false)
+        }
+
+        // 초기 체크
+        checkKakaoReady()
+
+        // 주기적으로 체크 (SDK 로드 대기)
+        const interval = setInterval(checkKakaoReady, 100)
+
+        // 최대 5초 대기
+        const timeout = setTimeout(() => {
+            clearInterval(interval)
+            checkKakaoReady()
+        }, 5000)
+
+        return () => {
+            clearInterval(interval)
+            clearTimeout(timeout)
+        }
+    }, [])
 
     const templateArgs = useMemo(() => {
         if (!settings) return null
@@ -246,6 +278,16 @@ export default function KakaoShare(props: KakaoShareProps) {
         }
     }, [settings, inviteData, pageId])
 
+    // templateId를 page_settings에서 가져오기
+    const templateId = useMemo(() => {
+        if (!settings) return null
+        const id = settings.kakao_template_id || settings.template_id
+        if (id) {
+            return String(id)
+        }
+        return null
+    }, [settings])
+
     const kakao = typeof window !== 'undefined' ? window.Kakao : undefined
 
     const isReadyToShare =
@@ -253,6 +295,7 @@ export default function KakaoShare(props: KakaoShareProps) {
         !!pageId &&
         !!templateArgs &&
         !!kakao &&
+        kakaoReady &&
         kakao.isInitialized()
 
     const handleShare = () => {
@@ -309,23 +352,3 @@ export default function KakaoShare(props: KakaoShareProps) {
     )
 }
 
-addPropertyControls(KakaoShare, {
-    pageId: {
-        type: ControlType.String,
-        title: 'Page ID',
-        defaultValue: '',
-        placeholder: '예: wedding-demo',
-    },
-    userUrl: {
-        type: ControlType.String,
-        title: 'User URL',
-        defaultValue: '',
-        placeholder: '예: minjunseoyun',
-    },
-    templateId: {
-        type: ControlType.String,
-        title: 'Template ID',
-        defaultValue: '',
-        placeholder: '카카오 템플릿 ID',
-    },
-})
