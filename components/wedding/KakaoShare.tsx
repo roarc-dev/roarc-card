@@ -8,7 +8,6 @@ const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js'
 const KAKAO_APP_KEY =
     process.env.NEXT_PUBLIC_KAKAO_JS_KEY || 'db63a9b37174b5a425a21d797318dff8'
 
-// Typography 폰트 스택 (typography.js에서 가져온 값들)
 const FONT_STACKS = {
     pretendardVariable: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple SD Gothic Neo, Noto Sans KR, "Apple Color Emoji", "Segoe UI Emoji"',
     pretendard: 'Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple SD Gothic Neo, Noto Sans KR, "Apple Color Emoji", "Segoe UI Emoji"',
@@ -35,6 +34,24 @@ interface PageSettings {
 interface InviteData {
     groomName?: string
     brideName?: string
+}
+
+// 카카오 SDK 타입 정의 수정
+declare global {
+    interface Window {
+        Kakao?: {
+            init: (key: string) => void
+            // isInitialized는 실제로 존재하지 않음
+            Share?: {
+                sendCustom: (options: {
+                    templateId: number
+                    templateArgs: Record<string, string>
+                }) => void
+            }
+            // 내부적으로 초기화 여부를 확인하는 비공개 속성
+            _initializedAppKey?: string
+        }
+    }
 }
 
 async function fetchPageSettings(pageId: string): Promise<PageSettings | null> {
@@ -95,9 +112,8 @@ async function fetchInviteData(pageId: string): Promise<InviteData | null> {
 function formatWeddingDate(weddingDate?: string): string {
     if (!weddingDate) return ''
     try {
-        // "2025-12-06" 형태를 "251206"으로 변환
         const date = new Date(weddingDate)
-        const year = date.getFullYear().toString().slice(-2) // 마지막 2자리
+        const year = date.getFullYear().toString().slice(-2)
         const month = (date.getMonth() + 1).toString().padStart(2, '0')
         const day = date.getDate().toString().padStart(2, '0')
         return `${year}${month}${day}`
@@ -117,7 +133,6 @@ function formatWeddingDateTime(settings: PageSettings): string {
         const month = date.getMonth() + 1
         const day = date.getDate()
 
-        // 요일 계산
         const dayNames = [
             '일요일',
             '월요일',
@@ -129,7 +144,6 @@ function formatWeddingDateTime(settings: PageSettings): string {
         ]
         const dayOfWeek = dayNames[date.getDay()]
 
-        // 시간 포맷팅 (12시간제)
         const hour = wedding_hour ? parseInt(wedding_hour) : null
         const minute = wedding_minute ? parseInt(wedding_minute) : null
 
@@ -157,80 +171,33 @@ interface KakaoShareProps {
     style?: React.CSSProperties
 }
 
-declare global {
-    interface Window {
-        Kakao?: {
-            init: (key: string) => void
-            isInitialized?: () => boolean
-            Share?: {
-                sendCustom: (options: {
-                    templateId: number
-                    templateArgs: Record<string, string>
-                }) => void
-            }
-        }
-    }
-}
-
 export default function KakaoShare(props: KakaoShareProps) {
     const { pageId = '', userUrl = '', style } = props
-
-    // 즉시 로그 출력 (렌더링 시점 - 클라이언트 사이드에서만)
-    if (typeof window !== 'undefined') {
-        console.error('🔴 [KakaoShare] 컴포넌트 렌더링 시작 (클라이언트)')
-        console.warn('🟡 [KakaoShare] props:', { pageId, userUrl })
-    }
 
     const [settings, setSettings] = useState<PageSettings | null>(null)
     const [inviteData, setInviteData] = useState<InviteData | null>(null)
     const [kakaoReady, setKakaoReady] = useState(false)
-    const [kakaoClient, setKakaoClient] = useState<Window['Kakao']>()
 
-    // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
-
-    // 폰트 패밀리 설정 (typography.js에서 가져온 폰트 스택 사용)
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
 
-    // 컴포넌트 마운트 확인
-    useEffect(() => {
-        console.log('🔵 [KakaoShare] ===== useEffect 실행됨 =====')
-        console.error('🔴 [KakaoShare] ERROR 레벨 - useEffect 실행')
-        console.warn('🟡 [KakaoShare] WARN 레벨 - props:', { pageId, userUrl })
-        console.log('[KakaoShare] window.Kakao 존재:', typeof window !== 'undefined' && !!(window as any).Kakao)
-        if (typeof window !== 'undefined' && (window as any).Kakao) {
-            const kakao = (window as any).Kakao
-            console.log('[KakaoShare] Kakao 객체:', kakao)
-            console.log('[KakaoShare] Kakao.isInitialized 함수:', typeof kakao.isInitialized)
-            if (typeof kakao.isInitialized === 'function') {
-                console.log('[KakaoShare] Kakao.isInitialized() 결과:', kakao.isInitialized())
-            }
-        }
-    }, [])
-
+    // 데이터 로딩
     useEffect(() => {
         console.log('[KakaoShare] 데이터 로딩 시작, pageId:', pageId)
         if (!pageId) {
-            console.warn('[KakaoShare] pageId가 없어서 데이터 로딩 중단')
             setSettings(null)
             setInviteData(null)
             return
         }
         let cancelled = false
 
-        // page-settings 데이터 가져오기
         void fetchPageSettings(pageId).then((data) => {
-            console.log('[KakaoShare] page-settings 로드 완료:', data ? '성공' : '실패', data)
+            console.log('[KakaoShare] page-settings 로드 완료:', data)
             if (!cancelled) setSettings(data)
-        }).catch((error) => {
-            console.error('[KakaoShare] page-settings 로드 실패:', error)
         })
 
-        // invite 데이터 가져오기
         void fetchInviteData(pageId).then((data) => {
-            console.log('[KakaoShare] invite 데이터 로드 완료:', data ? '성공' : '실패', data)
+            console.log('[KakaoShare] invite 데이터 로드 완료:', data)
             if (!cancelled) setInviteData(data)
-        }).catch((error) => {
-            console.error('[KakaoShare] invite 데이터 로드 실패:', error)
         })
 
         return () => {
@@ -238,65 +205,90 @@ export default function KakaoShare(props: KakaoShareProps) {
         }
     }, [pageId])
 
-    // 카카오 SDK 로드 및 초기화
+    // 카카오 SDK 로드 및 초기화 (개선된 버전)
     useEffect(() => {
         if (typeof window === 'undefined') return
 
-        const prepareClient = () => {
+        console.log('[KakaoShare] SDK 초기화 시작')
+
+        // SDK가 이미 로드되어 있는지 확인
+        const checkAndInitialize = () => {
             const kakao = window.Kakao
             if (!kakao) {
-                console.log('[KakaoShare] window.Kakao 없음')
+                console.log('[KakaoShare] Kakao SDK 없음')
                 return false
             }
+
+            // Kakao SDK는 중복 init 호출 시 경고만 발생하고 정상 작동
+            // isInitialized 메서드는 실제로 존재하지 않음
             try {
-                if (typeof kakao.isInitialized === 'function') {
-                    if (!kakao.isInitialized()) {
-                        kakao.init(KAKAO_APP_KEY)
-                    }
-                } else if (typeof kakao.init === 'function') {
+                // _initializedAppKey는 내부 속성으로 초기화 여부 확인 가능
+                if (!kakao._initializedAppKey) {
+                    console.log('[KakaoShare] SDK 초기화 시도')
                     kakao.init(KAKAO_APP_KEY)
+                } else {
+                    console.log('[KakaoShare] SDK 이미 초기화됨')
                 }
+
                 if (!kakao.Share) {
-                    console.warn('[KakaoShare] Kakao.Share 미탑재')
+                    console.warn('[KakaoShare] Kakao.Share 모듈 없음')
                     return false
                 }
-                setKakaoClient(kakao)
+
+                console.log('[KakaoShare] SDK 준비 완료')
                 setKakaoReady(true)
                 return true
             } catch (error) {
-                console.error('[KakaoShare] Kakao SDK 초기화 실패:', error)
+                console.error('[KakaoShare] SDK 초기화 실패:', error)
                 setKakaoReady(false)
                 return false
             }
         }
 
-        if (prepareClient()) {
+        // 즉시 확인 (이미 로드된 경우)
+        if (checkAndInitialize()) {
             return
         }
 
+        // 스크립트 로드 필요
         const scriptSelector = `script[src="${KAKAO_SDK_URL}"]`
         let script = document.querySelector<HTMLScriptElement>(scriptSelector)
+
         const handleLoad = () => {
-            console.log('[KakaoShare] Kakao SDK 로드 완료, 초기화 재시도')
-            prepareClient()
+            console.log('[KakaoShare] SDK 스크립트 로드 완료')
+            // 약간의 지연 후 초기화 (SDK가 완전히 준비되도록)
+            setTimeout(() => {
+                checkAndInitialize()
+            }, 100)
         }
+
         const handleError = (event: Event) => {
-            console.error('[KakaoShare] Kakao SDK 로드 실패', event)
+            console.error('[KakaoShare] SDK 스크립트 로드 실패', event)
             setKakaoReady(false)
         }
 
-        if (!script) {
+        if (script) {
+            // 스크립트가 이미 있는 경우
+            if (script.complete) {
+                // 이미 로드 완료
+                handleLoad()
+            } else {
+                // 로드 중
+                script.addEventListener('load', handleLoad)
+                script.addEventListener('error', handleError)
+            }
+        } else {
+            // 새 스크립트 생성
             script = document.createElement('script')
             script.src = KAKAO_SDK_URL
             script.async = true
             script.crossOrigin = 'anonymous'
             script.integrity =
                 'sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka'
+            script.addEventListener('load', handleLoad)
+            script.addEventListener('error', handleError)
             document.head.appendChild(script)
         }
-
-        script.addEventListener('load', handleLoad)
-        script.addEventListener('error', handleError)
 
         return () => {
             script?.removeEventListener('load', handleLoad)
@@ -305,42 +297,30 @@ export default function KakaoShare(props: KakaoShareProps) {
     }, [])
 
     const templateArgs = useMemo(() => {
-        console.log('[KakaoShare] templateArgs 계산 시작, settings:', settings)
-        if (!settings) {
-            console.log('[KakaoShare] templateArgs: settings가 없어서 null 반환')
-            return null
-        }
+        if (!settings) return null
 
-        // 신랑/신부 이름: inviteData 우선, 없으면 page_settings에서 가져옴
         const groomName =
             inviteData?.groomName?.trim() || settings.groom_name_kr?.trim() || ''
         const brideName =
             inviteData?.brideName?.trim() || settings.bride_name_kr?.trim() || ''
 
-        // Admin.tsx에서 이미 포맷팅된 정보를 그대로 사용
         const customTitle =
             settings.kko_title?.trim() || `${groomName} ♥ ${brideName} 결혼합니다`
 
         const customBody =
             settings.kko_date?.trim() || formatWeddingDateTime(settings)
 
-        // 이미지 URL: kko_img 우선, 없으면 메인 사진 사용
-        // 주의: photo_section_image_url은 AVIF일 수 있어 카카오톡에서 미지원
-        // AVIF URL 감지하여 경고 로그 출력
         let imageUrl = settings.kko_img?.trim() || ''
         if (!imageUrl && settings.photo_section_image_url) {
             const photoUrl = settings.photo_section_image_url
             if (photoUrl.includes('.avif') || photoUrl.includes('/avif')) {
                 console.warn(
-                    '[KakaoShare] 카카오톡 공유용 이미지를 별도로 업로드해주세요.'
+                    '[KakaoShare] AVIF 이미지는 카카오톡에서 지원되지 않을 수 있습니다.'
                 )
             }
             imageUrl = photoUrl
         }
 
-        // 카카오 템플릿에서 ${REGI_WEB_DOMAIN}/${WEDDING_URL} 형태로 사용
-        // REGI_WEB_DOMAIN: "https://mcard.roarc.kr/"
-        // WEDDING_URL: 날짜/page_id 형태 (예: "251206/wedding-demo")
         const formattedDate = formatWeddingDate(settings.wedding_date)
         const publicSlug = (userUrl || pageId).trim()
         const pathWithDate = formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
@@ -349,133 +329,69 @@ export default function KakaoShare(props: KakaoShareProps) {
             WEDDING_IMAGE: imageUrl,
             CUSTOM_TITLE: customTitle,
             CUSTOM_BODY: customBody,
-            WEDDING_URL: pathWithDate, // 날짜/page_id 형태 전달
+            WEDDING_URL: pathWithDate,
         }
-        console.log('[KakaoShare] templateArgs 계산 완료:', args)
+        console.log('[KakaoShare] templateArgs:', args)
         return args
     }, [settings, inviteData, pageId, userUrl])
 
-    // 템플릿 ID 고정값
     const templateId = "124666"
 
-    const kakao = kakaoClient
-
-    // isReadyToShare 조건 완화: Share 모듈이 있으면 활성화
     const isReadyToShare = useMemo(() => {
-        const hasTemplateId = !!templateId
-        const hasPageId = !!pageId
-        const hasTemplateArgs = !!templateArgs
-        const hasKakao = !!kakao
-        const hasShare = !!(kakao?.Share)
-        const isInit = typeof kakao?.isInitialized === 'function' ? kakao.isInitialized() : hasShare
-        
-        const ready = hasTemplateId && hasPageId && hasTemplateArgs && hasKakao && hasShare && (kakaoReady || isInit)
-        
-        if (typeof window !== 'undefined') {
-            console.error('🔴 [KakaoShare] isReadyToShare 계산:', {
-                hasTemplateId,
-                hasPageId,
-                hasTemplateArgs,
-                hasKakao,
-                hasShare,
-                kakaoReady,
-                isInit,
-                ready,
-            })
-        }
-        
+        const ready = !!(
+            kakaoReady &&
+            templateId &&
+            pageId &&
+            templateArgs &&
+            window.Kakao?.Share
+        )
+        console.log('[KakaoShare] isReadyToShare:', ready, {
+            kakaoReady,
+            hasTemplateId: !!templateId,
+            hasPageId: !!pageId,
+            hasTemplateArgs: !!templateArgs,
+            hasKakaoShare: !!window.Kakao?.Share,
+        })
         return ready
-    }, [templateId, pageId, templateArgs, kakao, kakaoReady])
-
-    // 디버깅: 상태 변경 추적
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            console.error('🔴 [KakaoShare] 상태 변경:', {
-                templateId: !!templateId,
-                pageId: !!pageId,
-                hasTemplateArgs: !!templateArgs,
-                hasKakao: !!kakao,
-                hasShare: !!(kakao?.Share),
-                kakaoReady,
-                isReadyToShare,
-            })
-        }
-    }, [templateId, pageId, templateArgs, kakao, kakaoReady, isReadyToShare])
+    }, [kakaoReady, templateId, pageId, templateArgs])
 
     const handleShare = () => {
-        console.error('🔴 [KakaoShare] 버튼 클릭됨!')
-        console.log('[KakaoShare] handleShare 호출, isReadyToShare:', isReadyToShare)
-        console.log('[KakaoShare] templateArgs:', templateArgs)
-        console.log('[KakaoShare] kakao:', kakao)
-        
-        // 카카오 SDK 재확인
-        const currentKakao =
-            kakaoClient ||
-            (typeof window !== 'undefined' ? (window as Window).Kakao : undefined)
-        if (!currentKakao) {
-            console.error('🔴 [KakaoShare] window.Kakao를 찾을 수 없음')
-            alert('카카오 SDK가 로드되지 않았습니다. 페이지를 새로고침해주세요.')
+        console.log('[KakaoShare] 공유 버튼 클릭')
+
+        if (!isReadyToShare) {
+            alert('카카오톡 공유 준비 중입니다. 잠시 후 다시 시도해주세요.')
             return
         }
 
-        if (!currentKakao.Share) {
-            console.error('🔴 [KakaoShare] Kakao.Share 모듈을 찾을 수 없음')
-            alert('카카오톡 공유 모듈을 찾을 수 없습니다. 페이지를 새로고침해주세요.')
+        const kakao = window.Kakao
+        if (!kakao?.Share || !templateArgs) {
+            console.error('[KakaoShare] SDK 또는 데이터 누락')
+            alert('카카오톡 공유를 준비할 수 없습니다. 페이지를 새로고침해주세요.')
             return
-        }
-
-        if (!templateArgs) {
-            console.error('🔴 [KakaoShare] templateArgs가 없음')
-            alert('공유할 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
-            return
-        }
-
-        // isInitialized 확인 및 재초기화 시도
-        if (typeof currentKakao.isInitialized === 'function' && !currentKakao.isInitialized()) {
-            console.log('[KakaoShare] SDK 미초기화, 재초기화 시도')
-            try {
-                currentKakao.init(KAKAO_APP_KEY)
-            } catch (error) {
-                console.error('[KakaoShare] 재초기화 실패:', error)
-            }
         }
 
         try {
-            console.log('[KakaoShare] 카카오톡 공유 시도')
-            console.log('[KakaoShare] templateId:', templateId)
-            console.log('[KakaoShare] templateArgs:', templateArgs)
-            
-            // 카카오 개발자 문서에 따른 sendCustom 사용
-            // https://developers.kakao.com/docs/latest/ko/kakaotalk-share/js-link
-            currentKakao.Share.sendCustom({
+            console.log('[KakaoShare] sendCustom 호출:', {
+                templateId: Number(templateId),
+                templateArgs,
+            })
+
+            kakao.Share.sendCustom({
                 templateId: Number(templateId),
                 templateArgs: templateArgs,
             })
-            console.log('[KakaoShare] 카카오톡 공유 성공')
+
+            console.log('[KakaoShare] 공유 성공')
         } catch (error) {
-            console.error('🔴 [KakaoShare] 카카오톡 공유 실패', error)
-            if (error instanceof Error) {
-                console.error('[KakaoShare] 에러 메시지:', error.message)
-                console.error('[KakaoShare] 에러 스택:', error.stack)
-            }
-            alert(`카카오톡 공유 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
+            console.error('[KakaoShare] 공유 실패:', error)
+            alert(
+                `카카오톡 공유 중 오류가 발생했습니다.\n${
+                    error instanceof Error ? error.message : '알 수 없는 오류'
+                }`
+            )
         }
     }
 
-    // 렌더링 시점 로그 (클라이언트 사이드에서만)
-    if (typeof window !== 'undefined') {
-        console.error('🔴 [KakaoShare] 렌더링 중 (클라이언트)', {
-            isReadyToShare,
-            hasPageId: !!pageId,
-            hasSettings: !!settings,
-            hasTemplateArgs: !!templateArgs,
-            hasKakao: !!kakao,
-            hasShare: !!(kakao?.Share),
-            kakaoReady,
-        })
-    }
-
-    // 항상 렌더링 (버튼은 항상 보이도록)
     return (
         <div 
             style={{
@@ -490,16 +406,11 @@ export default function KakaoShare(props: KakaoShareProps) {
                 paddingBottom: 40,
                 ...(style || {})
             }}
-            onMouseEnter={() => console.log('[KakaoShare] 컨테이너 마우스 오버')}
         >
             <button
                 type="button"
                 onClick={handleShare}
                 disabled={!isReadyToShare}
-                onMouseEnter={() => {
-                    console.error('🔴 [KakaoShare] 버튼 마우스 오버')
-                    console.log('[KakaoShare] 버튼 상태:', { isReadyToShare, disabled: !isReadyToShare })
-                }}
                 style={{
                     width: '60%',
                     minWidth: 160,
@@ -515,7 +426,7 @@ export default function KakaoShare(props: KakaoShareProps) {
                     transition: 'all 0.2s ease',
                 }}
             >
-                {isReadyToShare ? '카카오톡으로 공유하기' : '카카오톡으로 공유하기 (준비 중...)'}
+                {isReadyToShare ? '카카오톡으로 공유하기' : '카카오톡 공유 준비 중...'}
             </button>
         </div>
     )
