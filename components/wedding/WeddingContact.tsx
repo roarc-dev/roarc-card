@@ -776,7 +776,7 @@ const ContactItem = React.memo(function ContactItem({
                 <div
                     style={{
                         display: "flex",
-                        alignItems: "flex-start",
+                        alignItems: "center",
                         gap: "8px",
                         marginTop: 0,
                     }}
@@ -791,7 +791,7 @@ const ContactItem = React.memo(function ContactItem({
                             wordWrap: "break-word",
                             wordBreak: "break-word",
                             textAlign: "left",
-                            maxWidth: "4ch",
+                            maxWidth: "3ch",
                         }}
                     >
                         {name}
