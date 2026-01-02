@@ -271,7 +271,7 @@ export default function BGM(props: BGMProps) {
                         width: '100%',
                         height: '43px',
                         minHeight: '43px',
-                        backgroundColor: '#FAFAFA',
+                        backgroundColor: '#ffffff',
                         ...style,
                     }}
                 >
@@ -310,7 +310,7 @@ export default function BGM(props: BGMProps) {
                         width: '100%',
                         height: '43px',
                         minHeight: '43px',
-                        backgroundColor: '#FAFAFA',
+                        backgroundColor: '#ffffff',
                         ...style,
                     }}
                 />
@@ -407,7 +407,7 @@ export default function BGM(props: BGMProps) {
                 : bgmEnabled && audioUrl
                   ? '0px'
                   : '0px',
-        backgroundColor: bgmType === 'papillon' ? '#FAFAFA' : '#fff',
+        backgroundColor: bgmType === 'papillon' ? '#ffffff' : '#fff',
         ...style,
     }
 
