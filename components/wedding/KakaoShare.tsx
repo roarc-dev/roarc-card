@@ -383,7 +383,7 @@ export default function KakaoShare(props: KakaoShareProps) {
                     minWidth: 160,
                     height: 54,
                     border: 'none',
-                    backgroundColor: isReadyToShare ? '#FEE500' : '#e0e0e0',
+                    backgroundColor: '#e0e0e0',
                     color: isReadyToShare ? '#000' : '#999',
                     fontFamily: pretendardFontFamily,
                     fontWeight: 600,
