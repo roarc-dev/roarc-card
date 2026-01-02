@@ -165,28 +165,50 @@ async function getPageCoordinates(pageId: string): Promise<Coordinates | null> {
 }
 
 async function getTransportDetails(pageId: string): Promise<TransportItem[]> {
-    if (!pageId) return []
+    if (!pageId) {
+        console.log('[getTransportDetails] pageId가 없음')
+        return []
+    }
     try {
         const bases = [
             typeof window !== "undefined" ? window.location.origin : "",
             PROXY_BASE_URL,
         ].filter(Boolean)
+        
+        console.log('[getTransportDetails] API 호출 시작:', { pageId, bases })
+        
         let res = null
         for (const base of bases) {
             try {
-                const tryRes = await fetch(
-                    `${base}/api/page-settings?transport&pageId=${encodeURIComponent(pageId)}`
-                )
+                const url = `${base}/api/page-settings?transport&pageId=${encodeURIComponent(pageId)}`
+                console.log('[getTransportDetails] 시도:', url)
+                const tryRes = await fetch(url)
+                console.log('[getTransportDetails] 응답 상태:', tryRes.status, tryRes.ok)
                 res = tryRes
                 if (tryRes.ok) break
-            } catch {}
+            } catch (error) {
+                console.error('[getTransportDetails] fetch 에러:', error)
+            }
         }
-        if (!res) return []
+        if (!res) {
+            console.log('[getTransportDetails] 응답 없음')
+            return []
+        }
         const result = await res.json()
+        console.log('[getTransportDetails] 응답 데이터:', result)
+        
         if (result?.success && Array.isArray(result.data)) {
+            console.log('[getTransportDetails] 성공, 항목 수:', result.data.length)
             return result.data
+        } else {
+            console.warn('[getTransportDetails] 응답 형식 오류:', {
+                success: result?.success,
+                isArray: Array.isArray(result?.data),
+                data: result?.data
+            })
         }
-    } catch (_) {
+    } catch (error) {
+        console.error('[getTransportDetails] 에러:', error)
         return []
     }
     return []
