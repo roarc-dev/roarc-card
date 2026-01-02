@@ -54,13 +54,22 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
   // 컴포넌트 순서 결정 (설정에서 가져오거나 기본값 사용)
   const componentOrder = useMemo(() => {
     if (pageSettings.component_order && Array.isArray(pageSettings.component_order)) {
-      return pageSettings.component_order as ComponentType[]
+      const order = pageSettings.component_order as ComponentType[]
+      console.log('[WeddingPage] component_order from settings:', order)
+      console.log('[WeddingPage] KakaoShare 포함 여부:', order.includes('KakaoShare'))
+      return order
     }
+    console.log('[WeddingPage] DEFAULT_COMPONENT_ORDER 사용:', DEFAULT_COMPONENT_ORDER)
+    console.log('[WeddingPage] KakaoShare 포함 여부:', DEFAULT_COMPONENT_ORDER.includes('KakaoShare'))
     return DEFAULT_COMPONENT_ORDER
   }, [pageSettings.component_order])
 
   // 컴포넌트 렌더링 함수
   const renderComponent = (type: ComponentType, index: number) => {
+    // 디버깅: KakaoShare 렌더링 확인
+    if (type === 'KakaoShare') {
+      console.error('🔴 [WeddingPage] KakaoShare 렌더링 시작, pageId:', pageId)
+    }
     switch (type) {
       // 연결된 컴포넌트
       case 'bgm':
@@ -145,6 +154,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           />
         )
       case 'KakaoShare':
+        console.error('🔴 [WeddingPage] KakaoShare case 실행됨')
         return (
           <KakaoShare
             key={`${type}-${index}`}
@@ -156,8 +166,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
       // 아직 연결되지 않은 컴포넌트 - Placeholder로 표시
       case 'CalendarAddBtn':
       case 'rsvpResult':
-      case 'CommentBoard':
-      case 'KakaoShare':
+      // 'KakaoShare'는 위에서 이미 처리되므로 여기서 제외
       // 'bgm'은 위에서 이미 처리되므로 여기서 제외
       case 'EternalDateVenue':
       case 'EternalMainPhoto':

@@ -384,40 +384,56 @@ export default function KakaoShare(props: KakaoShareProps) {
     // 렌더링 시점 로그
     console.log('🔵 [KakaoShare] 렌더링 중, isReadyToShare:', isReadyToShare)
     console.error('🔴 [KakaoShare] ERROR 레벨 - 렌더링 중')
+    console.log('[KakaoShare] 최종 상태:', {
+        hasPageId: !!pageId,
+        hasSettings: !!settings,
+        hasTemplateArgs: !!templateArgs,
+        hasKakao: !!kakao,
+        kakaoReady,
+        isReadyToShare,
+    })
 
+    // 항상 렌더링 (버튼은 항상 보이도록)
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            width: '100%',
-            color: 'rgba(245, 245, 245, 1)',
-            backgroundColor: '#FAFAFA',
-            paddingTop: 40,
-            ...(style || {})
-        }}>
+        <div 
+            style={{
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: '100%',
+                color: 'rgba(245, 245, 245, 1)',
+                backgroundColor: '#FAFAFA',
+                paddingTop: 40,
+                paddingBottom: 40,
+                ...(style || {})
+            }}
+            onMouseEnter={() => console.log('[KakaoShare] 컨테이너 마우스 오버')}
+        >
             <button
                 type="button"
                 onClick={handleShare}
                 disabled={!isReadyToShare}
-                onMouseEnter={() => console.log('[KakaoShare] 버튼 마우스 오버')}
+                onMouseEnter={() => {
+                    console.error('🔴 [KakaoShare] 버튼 마우스 오버')
+                    console.log('[KakaoShare] 버튼 상태:', { isReadyToShare, disabled: !isReadyToShare })
+                }}
                 style={{
                     width: '60%',
-                    height: '100%',
                     minWidth: 160,
-                    minHeight: 54,
+                    height: 54,
                     border: 'none',
-                    backgroundColor: '#e0e0e0',
-                    color: '#000',
+                    backgroundColor: isReadyToShare ? '#FEE500' : '#e0e0e0',
+                    color: isReadyToShare ? '#000' : '#999',
                     fontFamily: pretendardFontFamily,
                     fontWeight: 600,
                     fontSize: 14,
                     cursor: isReadyToShare ? 'pointer' : 'not-allowed',
                     opacity: isReadyToShare ? 1 : 0.6,
+                    transition: 'all 0.2s ease',
                 }}
             >
-                카카오톡으로 공유하기 {!isReadyToShare && '(비활성화)'}
+                {isReadyToShare ? '카카오톡으로 공유하기' : '카카오톡으로 공유하기 (준비 중...)'}
             </button>
         </div>
     )
