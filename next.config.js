@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // 환경 변수 설정 (클라이언트에서 접근 가능하도록)
+  // 환경 변수 설정 (서버와 클라이언트 모두에서 접근 가능하도록)
   env: {
-    NEXT_PUBLIC_PROXY_URL: process.env.NEXT_PUBLIC_PROXY_URL || 'https://wedding-admin-proxy.vercel.app',
+    NEXT_PUBLIC_PROXY_URL: process.env.NEXT_PUBLIC_PROXY_URL || process.env.PROXY_URL || 'https://wedding-admin-proxy.vercel.app',
+    PROXY_URL: process.env.PROXY_URL || process.env.NEXT_PUBLIC_PROXY_URL || 'https://wedding-admin-proxy.vercel.app',
   },
   // 외부 이미지 도메인 허용
   images: {
