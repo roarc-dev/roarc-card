@@ -421,6 +421,13 @@ export default function LocationUnified({
 
                 if (!mounted) return
 
+                console.log('[LocationUnified] 데이터 로드 완료:', {
+                    settings,
+                    coords,
+                    transportCount: transport.length,
+                    transportItems: transport
+                })
+
                 setLocationSettings(settings)
                 setCoordinates(coords)
                 setTransportItems(transport)
