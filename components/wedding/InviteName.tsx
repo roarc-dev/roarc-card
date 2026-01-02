@@ -245,20 +245,57 @@ export default function InviteName(props: InviteNameProps) {
             setLoading(true)
             setError(null)
             try {
-                const response = await fetch(
-                    `${PROXY_BASE_URL}/api/invite?pageId=${encodeURIComponent(pageId)}`,
-                    {
-                        method: "GET",
-                        headers: { "Content-Type": "application/json" },
-                    }
-                )
+                // Next.js 앱에서는 PROXY_BASE_URL만 사용 (로컬 origin은 Next.js 페이지로 인식됨)
+                const url = `${PROXY_BASE_URL}/api/invite?pageId=${encodeURIComponent(pageId)}`
+                console.log('[InviteName] API 호출 시작:', { pageId, url })
+                
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                })
+                
+                console.log('[InviteName] 응답 상태:', response.status, response.ok)
+                
                 if (!response.ok) {
+                    console.warn('[InviteName] 응답 실패:', response.status, response.statusText)
                     const text = await response.text()
-                    throw new Error(`HTTP ${response.status}: ${text}`)
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`)
                 }
-                const result = await response.json()
-                if (mounted && result.success && result.data) {
+                
+                // Content-Type 확인
+                const contentType = response.headers.get('content-type')
+                console.log('[InviteName] Content-Type:', contentType)
+                
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text()
+                    console.warn('[InviteName] JSON이 아닌 응답:', text.substring(0, 200))
+                    throw new Error('응답이 JSON 형식이 아닙니다')
+                }
+                
+                const text = await response.text()
+                console.log('[InviteName] 응답 텍스트 (처음 500자):', text.substring(0, 500))
+                
+                let result
+                try {
+                    result = JSON.parse(text)
+                } catch (parseError) {
+                    console.error('[InviteName] JSON 파싱 실패:', parseError)
+                    console.error('[InviteName] 응답 텍스트 전체:', text)
+                    throw new Error('JSON 파싱 실패')
+                }
+                
+                console.log('[InviteName] 응답 데이터:', result)
+                
+                if (!mounted) return
+                
+                if (result.success && result.data) {
                     const d = result.data
+                    console.log('[InviteName] 데이터 로드 성공:', {
+                        hasInvitationText: !!d.invitation_text,
+                        groomName: d.groom_name,
+                        brideName: d.bride_name
+                    })
+                    
                     setWeddingData({
                         invitationText: d.invitation_text || "",
                         groomFatherName: d.groom_father_name || "",
@@ -278,6 +315,11 @@ export default function InviteName(props: InviteNameProps) {
                         sonLabel: d.son_label || "아들",
                         daughterLabel: d.daughter_label || "딸",
                     })
+                } else {
+                    console.warn('[InviteName] 응답 형식 오류:', {
+                        success: result?.success,
+                        hasData: !!result?.data
+                    })
                 }
             } catch (e: unknown) {
                 if (!mounted) return
@@ -285,6 +327,11 @@ export default function InviteName(props: InviteNameProps) {
                     e instanceof Error
                         ? e.message
                         : "초대장 데이터를 불러오지 못했습니다"
+                console.error('[InviteName] 에러:', e)
+                if (e instanceof Error) {
+                    console.error('[InviteName] 에러 메시지:', e.message)
+                    console.error('[InviteName] 에러 스택:', e.stack)
+                }
                 setError(msg)
             } finally {
                 if (mounted) setLoading(false)
