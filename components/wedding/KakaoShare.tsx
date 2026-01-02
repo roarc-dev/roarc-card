@@ -170,10 +170,11 @@ declare global {
 export default function KakaoShare(props: KakaoShareProps) {
     const { pageId = '', userUrl = '', style } = props
 
-    // 즉시 로그 출력 (렌더링 시점)
-    console.log('🔵 [KakaoShare] 컴포넌트 렌더링 시작')
-    console.error('🔴 [KakaoShare] ERROR 레벨 로그 테스트 - 컴포넌트 렌더링됨')
-    console.warn('🟡 [KakaoShare] WARN 레벨 로그 테스트 - props:', { pageId, userUrl })
+    // 즉시 로그 출력 (렌더링 시점 - 클라이언트 사이드에서만)
+    if (typeof window !== 'undefined') {
+        console.error('🔴 [KakaoShare] 컴포넌트 렌더링 시작 (클라이언트)')
+        console.warn('🟡 [KakaoShare] props:', { pageId, userUrl })
+    }
 
     const [settings, setSettings] = useState<PageSettings | null>(null)
     const [inviteData, setInviteData] = useState<InviteData | null>(null)
@@ -368,28 +369,47 @@ export default function KakaoShare(props: KakaoShareProps) {
 
     const kakao = typeof window !== 'undefined' ? window.Kakao : undefined
 
-    // 디버깅: isReadyToShare 조건 체크
-    useEffect(() => {
-        console.log('[KakaoShare] isReadyToShare 조건 체크:', {
-            templateId: !!templateId,
-            templateIdValue: templateId,
-            pageId: !!pageId,
-            pageIdValue: pageId,
-            templateArgs: !!templateArgs,
-            templateArgsValue: templateArgs,
-            kakao: !!kakao,
-            kakaoReady,
-            kakaoInitialized: kakao?.isInitialized ? kakao.isInitialized() : false,
-        })
+    // isReadyToShare 조건 완화: Share 모듈이 있으면 활성화
+    const isReadyToShare = useMemo(() => {
+        const hasTemplateId = !!templateId
+        const hasPageId = !!pageId
+        const hasTemplateArgs = !!templateArgs
+        const hasKakao = !!kakao
+        const hasShare = !!(kakao?.Share)
+        const isInit = typeof kakao?.isInitialized === 'function' ? kakao.isInitialized() : hasShare
+        
+        const ready = hasTemplateId && hasPageId && hasTemplateArgs && hasKakao && hasShare && (kakaoReady || isInit)
+        
+        if (typeof window !== 'undefined') {
+            console.error('🔴 [KakaoShare] isReadyToShare 계산:', {
+                hasTemplateId,
+                hasPageId,
+                hasTemplateArgs,
+                hasKakao,
+                hasShare,
+                kakaoReady,
+                isInit,
+                ready,
+            })
+        }
+        
+        return ready
     }, [templateId, pageId, templateArgs, kakao, kakaoReady])
 
-    const isReadyToShare =
-        !!templateId &&
-        !!pageId &&
-        !!templateArgs &&
-        !!kakao &&
-        kakaoReady &&
-        kakao.isInitialized()
+    // 디버깅: 상태 변경 추적
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            console.error('🔴 [KakaoShare] 상태 변경:', {
+                templateId: !!templateId,
+                pageId: !!pageId,
+                hasTemplateArgs: !!templateArgs,
+                hasKakao: !!kakao,
+                hasShare: !!(kakao?.Share),
+                kakaoReady,
+                isReadyToShare,
+            })
+        }
+    }, [templateId, pageId, templateArgs, kakao, kakaoReady, isReadyToShare])
 
     const handleShare = () => {
         console.error('🔴 [KakaoShare] 버튼 클릭됨!')
@@ -449,17 +469,18 @@ export default function KakaoShare(props: KakaoShareProps) {
         }
     }
 
-    // 렌더링 시점 로그
-    console.log('🔵 [KakaoShare] 렌더링 중, isReadyToShare:', isReadyToShare)
-    console.error('🔴 [KakaoShare] ERROR 레벨 - 렌더링 중')
-    console.log('[KakaoShare] 최종 상태:', {
-        hasPageId: !!pageId,
-        hasSettings: !!settings,
-        hasTemplateArgs: !!templateArgs,
-        hasKakao: !!kakao,
-        kakaoReady,
-        isReadyToShare,
-    })
+    // 렌더링 시점 로그 (클라이언트 사이드에서만)
+    if (typeof window !== 'undefined') {
+        console.error('🔴 [KakaoShare] 렌더링 중 (클라이언트)', {
+            isReadyToShare,
+            hasPageId: !!pageId,
+            hasSettings: !!settings,
+            hasTemplateArgs: !!templateArgs,
+            hasKakao: !!kakao,
+            hasShare: !!(kakao?.Share),
+            kakaoReady,
+        })
+    }
 
     // 항상 렌더링 (버튼은 항상 보이도록)
     return (
