@@ -114,6 +114,7 @@ export default function EternalMainPhoto(props: EternalMainPhotoProps) {
                 height: "223px",
                 position: "relative",
                 overflow: "hidden",
+                zIndex: 4,
                 ...style,
             }}
         >
