@@ -447,7 +447,7 @@ export default function UnifiedGalleryComplete({
             width: "100%",
             maxWidth: "430px",
             margin: "0 auto", // 중앙 정렬
-            backgroundColor: "#fafafa",
+            backgroundColor: galleryType === "slide" ? "#ffffff" : "#fafafa",
             padding: "0",
             paddingBottom: galleryType === "slide" ? "20px" : "60px",
         }),
