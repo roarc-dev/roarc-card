@@ -688,7 +688,6 @@ export default function LocationUnified({
                         flexDirection: "column",
                         justifyContent: "flex-start",
                         alignItems: "flex-start",
-                        gap: 5,
                     }}
                 >
                     {/* 장소 이름 */}
@@ -871,7 +870,6 @@ export default function LocationUnified({
                     minWidth: "320px",
                     height: "300px",
                     position: "relative",
-                    margin: "20px 0",
                 }}
             >
                 <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
