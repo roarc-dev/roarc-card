@@ -650,7 +650,9 @@ export default function LocationUnified({
                         ? goldenbookFontFamily 
                         : p22FontFamily,
                     fontSize: "25px",
-                    letterSpacing: "0.05em",
+                    letterSpacing: (pageType === "eternal" || pageType === "fiore") 
+                        ? "0" 
+                        : "0.05em",
                     lineHeight: "0.7em",
                     textAlign: "center",
                     whiteSpace: "nowrap",

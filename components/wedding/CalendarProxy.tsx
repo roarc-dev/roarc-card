@@ -557,7 +557,9 @@ export default function CalendarComponentProxy({
                     textAlign: "center",
                     marginBottom: "40px",
                     color: "#000",
-                    letterSpacing: "0.05em",
+                    letterSpacing: (pageSettings?.type === "eternal" || pageSettings?.type === "fiore") 
+                        ? "0" 
+                        : "0.05em",
                 }}
             >
                 WEDDING DAY
