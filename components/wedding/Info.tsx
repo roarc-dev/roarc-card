@@ -407,17 +407,21 @@ function Info({
 
     const titleFontFamily = useMemo(() => {
         const normalizedType = (pageType || "").toLowerCase().trim()
-        if (normalizedType.includes("eternal")) {
+        if (normalizedType === "eternal" || normalizedType === "fiore") {
             return goldenbookFontFamily
         }
-        if (
-            normalizedType.includes("papillon") ||
-            normalizedType.includes("fiore")
-        ) {
-            return p22FontFamily
-        }
+        // papillon 또는 기본값
         return p22FontFamily
     }, [pageType, goldenbookFontFamily, p22FontFamily])
+
+    const titleLetterSpacing = useMemo(() => {
+        const normalizedType = (pageType || "").toLowerCase().trim()
+        if (normalizedType === "eternal" || normalizedType === "fiore") {
+            return "0"
+        }
+        // papillon 또는 기본값
+        return "0.05em"
+    }, [pageType])
 
     // 로컬 개발에서는 더미 데이터 사용
     const isDevelopment = process.env.NODE_ENV === 'development'
@@ -677,7 +681,7 @@ function Info({
                     boxSizing: "border-box",
                     fontFamily: titleFontFamily,
                     fontSize: "25px",
-                    letterSpacing: "0.05em",
+                    letterSpacing: titleLetterSpacing,
                     lineHeight: "0.7em",
                     textAlign: "center",
                     whiteSpace: "nowrap",

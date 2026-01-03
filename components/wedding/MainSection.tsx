@@ -415,7 +415,15 @@ export default function MainSection(props: MainSectionProps) {
   switch (pageType) {
     case 'papillon':
       return (
-        <div style={style}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
+            ...style,
+          }}
+        >
           <NameSection
             groomName={pageSettings?.groom_name}
             brideName={pageSettings?.bride_name}
