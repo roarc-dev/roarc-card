@@ -672,12 +672,11 @@ export default function LocationUnified({
                     width: "fit-content",
                     height: "fit-content",
                     paddingTop: 40,
-                    paddingBottom: 28,
+                    paddingBottom: 30,
                     display: "inline-flex",
                     flexDirection: "column",
                     justifyContent: "flex-start",
                     alignItems: "center",
-                    gap: 10,
                     overflow: "visible",
                     position: "relative",
                 }}
@@ -914,7 +913,6 @@ export default function LocationUnified({
                         alignItems: "center",
                         gap: 15,
                         display: "inline-flex",
-                        marginBottom: "20px",
                     }}
                 >
                     {safeTransportItems
