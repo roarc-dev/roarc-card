@@ -83,7 +83,6 @@ function Button({
         width: fullWidth ? "100%" : undefined,
         whiteSpace: "nowrap",
         userSelect: "none",
-        minHeight: 40, // a11y touch target
     }
 
     const sizes: Record<ButtonSize, React.CSSProperties> = {
