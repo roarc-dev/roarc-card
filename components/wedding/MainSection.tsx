@@ -244,10 +244,10 @@ function EternalInteractionWrapper({
             alt="Roarc logo"
             style={{
               position: 'absolute',
-              top: '200px',
-              right: '-25px',
+              top: '210px',
+              right: '-20px',
               transform: 'translate(0, -50%)',
-              height: '50px',
+              height: '40px',
               width: 'auto',
               pointerEvents: 'none',
             }}
@@ -307,10 +307,10 @@ function EternalInteractionWrapper({
             alt="Roarc logo"
             style={{
               position: 'absolute',
-              top: '200px',
-              left: '-25px',
+              top: '210px',
+              left: '-20px',
               transform: 'translate(0, -50%)',
-              height: '50px',
+              height: '40px',
               width: 'auto',
               pointerEvents: 'none',
             }}
