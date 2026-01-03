@@ -550,7 +550,9 @@ export default function CalendarComponentProxy({
                 style={{
                     fontSize: "25px",
                     lineHeight: "1.2em",
-                    fontFamily: p22FontFamily,
+                    fontFamily: (pageSettings?.type === "eternal" || pageSettings?.type === "fiore") 
+                        ? goldenbookFontFamily 
+                        : p22FontFamily,
                     fontWeight: 400,
                     textAlign: "center",
                     marginBottom: "40px",

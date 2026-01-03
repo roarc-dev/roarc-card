@@ -124,7 +124,7 @@ export default function EternalDateVenue(props: EternalDateVenueProps) {
         pageId, 
         style, 
         fontSize = 32, 
-        lineHeight = 1.2, 
+        lineHeight = 1.0, 
         fontWeight = 400, 
         fontColor = "#000", 
         venueMarginBottom = 8 

@@ -367,6 +367,7 @@ export default function LocationUnified({
     // 폰트 패밀리 설정 (typography.js에서 가져온 폰트 스택 사용)
     const pretendardFontFamily = FONT_STACKS.pretendard
     const p22FontFamily = FONT_STACKS.p22
+    const goldenbookFontFamily = FONT_STACKS.goldenbook
 
     // 통합 상태 관리
     const [locationSettings, setLocationSettings] = useState<LocationSettings>({
@@ -374,6 +375,7 @@ export default function LocationUnified({
         venue_address: "",
         transport_location_name: "",
     })
+    const [pageType, setPageType] = useState<string>("")
     const [coordinates, setCoordinates] = useState<Coordinates | null>(null)
     const [transportItems, setTransportItems] = useState<TransportItem[]>([])
     const [naverClientId, setNaverClientId] = useState("")
@@ -415,6 +417,7 @@ export default function LocationUnified({
                 },
             ]
             setLocationSettings(dummyLocationSettings)
+            setPageType("") // 로컬 개발에서는 기본값 사용
             setCoordinates(dummyCoordinates)
             setTransportItems(dummyTransportItems)
             setNaverClientId("")
@@ -427,25 +430,44 @@ export default function LocationUnified({
         ;(async () => {
             setIsLoading(true)
             try {
-                const [settings, coords, transport, config] = await Promise.all(
+                const [settings, coords, transport, config, pageSettingsRes] = await Promise.all(
                     [
                         getLocationSettings(pageId),
                         getPageCoordinates(pageId),
                         getTransportDetails(pageId),
                         getMapConfig(),
+                        fetch(`${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`, {
+                            method: "GET",
+                            headers: { "Content-Type": "application/json" }
+                        }),
                     ]
                 )
 
                 if (!mounted) return
 
+                // pageSettings에서 type 가져오기
+                let pageTypeValue = ""
+                try {
+                    if (pageSettingsRes.ok) {
+                        const pageSettingsResult = await pageSettingsRes.json()
+                        if (pageSettingsResult?.success && pageSettingsResult?.data) {
+                            pageTypeValue = pageSettingsResult.data.type || ""
+                        }
+                    }
+                } catch (error) {
+                    console.warn('[LocationUnified] pageSettings type 조회 실패:', error)
+                }
+
                 console.log('[LocationUnified] 데이터 로드 완료:', {
                     settings,
                     coords,
                     transportCount: transport.length,
-                    transportItems: transport
+                    transportItems: transport,
+                    pageType: pageTypeValue
                 })
 
                 setLocationSettings(settings)
+                setPageType(pageTypeValue)
                 setCoordinates(coords)
                 setTransportItems(transport)
                 setNaverClientId(config.naverClientId)
@@ -624,7 +646,9 @@ export default function LocationUnified({
                 transition={{ duration: 0.5, ease: "easeOut", delay: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
                 style={{
-                    fontFamily: p22FontFamily,
+                    fontFamily: (pageType === "eternal" || pageType === "fiore") 
+                        ? goldenbookFontFamily 
+                        : p22FontFamily,
                     fontSize: "25px",
                     letterSpacing: "0.05em",
                     lineHeight: "0.7em",

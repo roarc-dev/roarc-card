@@ -428,7 +428,9 @@ export default function UnifiedGalleryComplete({
             alignItems: "center",
             justifyContent: "center",
             overflow: "visible",
-            fontFamily: pageType === "eternal" || pageType === "fiore" ? goldenbookFontFamily : p22FontFamily,
+            fontFamily: (pageType === "eternal" || pageType === "fiore") 
+            ? goldenbookFontFamily 
+            : p22FontFamily,
             fontSize: "25px",
             letterSpacing: "0.05em",
             lineHeight: "0.7em",

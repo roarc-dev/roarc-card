@@ -159,6 +159,7 @@ function EternalInteractionWrapper({
                 width: '100%',
                 textAlign: 'center',
                 fontFamily: goldenbookFontFamily,
+                fontWeight: 600,
                 fontSize: '12px',
                 lineHeight: '1.5',
                 color: '#000000',

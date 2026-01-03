@@ -33,7 +33,7 @@ export default function WeddingInvitationSection({
                 width: '100%',
                 paddingTop: '80px',
                 paddingBottom: '80px',
-                backgroundColor: '#fafafa',
+                backgroundColor: '#fff',
                 ...style,
             }}
         >
