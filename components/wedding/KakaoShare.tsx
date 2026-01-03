@@ -368,9 +368,8 @@ export default function KakaoShare(props: KakaoShareProps) {
                 alignItems: 'center',
                 width: '100%',
                 color: 'rgba(245, 245, 245, 1)',
-                backgroundColor: '#FAFAFA',
+                backgroundColor: '#F5F5F5',
                 paddingTop: 40,
-                paddingBottom: 40,
                 ...(style || {})
             }}
         >
