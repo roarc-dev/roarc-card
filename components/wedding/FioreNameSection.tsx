@@ -256,18 +256,17 @@ export default function FioreNameSection(props: FioreNameSectionProps) {
             {/* THE Marriage OF 텍스트 */}
             <div
                 style={{
-                    width: "100%",
+                    width: "fit-content",
+                    height: "fit-content",
                     textAlign: "center",
                     fontSize: "16px",
                     color: "black",
-                    lineHeight: "1.4",
+                    lineHeight: "1.2",
                 }}
             >
-                <span style={{ fontFamily: p22FontFamily }}>THE</span>
-                {" "}
-                <span style={{ fontFamily: sloopScriptProFontFamily }}>Marriage</span>
-                {" "}
-                <span style={{ fontFamily: p22FontFamily }}>OF</span>
+                <span style={{ fontFamily: p22FontFamily, marginRight: "4px" }}>THE</span>
+                <span style={{ fontFamily: sloopScriptProFontFamily, fontSize: "34px", marginLeft: "2px", marginRight: "4px" }}>Marriage</span>
+                <span style={{ fontFamily: p22FontFamily, marginLeft: "4px" }}>OF</span>
             </div>
 
             {/* 이름 섹션 */}
@@ -275,7 +274,7 @@ export default function FioreNameSection(props: FioreNameSectionProps) {
                 ref={nameContainerRef}
                 style={{
                     width: "100%",
-                    maxWidth: "439px",
+                    height: "fit-content",
                     flexDirection: "column",
                     justifyContent: "flex-start",
                     alignItems: "center",

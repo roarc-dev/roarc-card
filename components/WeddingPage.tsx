@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useEffect, useState } from 'react'
 import type { PageSettings } from '@/lib/supabase'
 import { ComponentType, DEFAULT_COMPONENT_ORDER } from '@/lib/components-registry'
 // @ts-ignore
@@ -205,8 +205,27 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
     }
   }
 
+  // 개발 모드에서 URL 쿼리 파라미터로 type 오버라이드 (클라이언트 사이드에서만)
+  const [devTypeOverride, setDevTypeOverride] = useState<'papillon' | 'eternal' | 'fiore' | 'mobile' | null>(null)
+  
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') {
+      return
+    }
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const overrideType = params.get('type')
+      if (overrideType === 'papillon' || overrideType === 'eternal' || overrideType === 'fiore' || overrideType === 'mobile') {
+        console.log('[WeddingPage] 개발 모드: type 오버라이드:', overrideType)
+        setDevTypeOverride(overrideType)
+      }
+    } catch (error) {
+      console.warn('[WeddingPage] 쿼리 파라미터 읽기 실패:', error)
+    }
+  }, [])
+
   // pageSettings의 type 확인 (papillon일 때만 mobileCover 표시)
-  const pageType = pageSettings.type || 'papillon'
+  const pageType = devTypeOverride || pageSettings.type || 'papillon'
   const shouldShowMobileCover = pageType === 'papillon'
 
   return (

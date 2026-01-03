@@ -30,21 +30,40 @@ async function getInviteNamesByPageId(pageId: string) {
 }
 
 async function getPageSettingsNames(pageId: string) {
-    if (!pageId) return { groom_name_en: "", bride_name_en: "" }
+    if (!pageId)
+        return {
+            groom_name_en: "",
+            bride_name_en: "",
+            last_groom_name_en: "",
+            last_bride_name_en: "",
+        }
     try {
         const res = await fetch(
             `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+            { method: "GET", headers: { "Content-Type": "application/json" } }
         )
-        if (!res.ok) return { groom_name_en: "", bride_name_en: "" }
+        if (!res.ok)
+            return {
+                groom_name_en: "",
+                bride_name_en: "",
+                last_groom_name_en: "",
+                last_bride_name_en: "",
+            }
         const json = await res.json()
         const data = json && json.data ? json.data : {}
         return {
             groom_name_en: data.groom_name_en || "",
             bride_name_en: data.bride_name_en || "",
+            last_groom_name_en: data.last_groom_name_en || "",
+            last_bride_name_en: data.last_bride_name_en || "",
         }
     } catch {
-        return { groom_name_en: "", bride_name_en: "" }
+        return {
+            groom_name_en: "",
+            bride_name_en: "",
+            last_groom_name_en: "",
+            last_bride_name_en: "",
+        }
     }
 }
 
@@ -117,38 +136,56 @@ export default function EternalNameSection(props: EternalNameSectionProps) {
         }
     }, [])
 
-    // 페이지에서 신랑/신부 이름 로드 (props 값이 비어있을 때만)
+    // 페이지에서 신랑/신부 이름 로드 (항상 pageId에서 가져오기)
     useEffect(() => {
         let mounted = true
         ;(async () => {
-            const hasCustomGroom = !!(groomName && groomName.trim() && groomName !== "GROOM NAME")
-            const hasCustomBride = !!(brideName && brideName.trim() && brideName !== "BRIDE NAME")
-            if (hasCustomGroom || hasCustomBride) {
-                return // 사용자가 이름을 명시한 경우 API 호출 생략
+            if (!pageId) {
+                return
             }
 
-            // 1) page_settings에서 EN 이름 우선 사용
-            const settingsNames = await getPageSettingsNames(pageId || "")
+            // 1) page_settings에서 EN 이름 우선 사용 (항상 last name과 en name 조합)
+            const settingsNames = await getPageSettingsNames(pageId)
             if (!mounted) return
-            let updated = false
+
+            // 신랑 이름: last_groom_name_en + " " + groom_name_en
+            const groomParts: string[] = []
+            if (settingsNames.last_groom_name_en) {
+                groomParts.push(settingsNames.last_groom_name_en.trim())
+            }
             if (settingsNames.groom_name_en) {
-                setResolvedGroomName(settingsNames.groom_name_en)
-                updated = true
+                groomParts.push(settingsNames.groom_name_en.trim())
+            }
+            if (groomParts.length > 0) {
+                setResolvedGroomName(groomParts.join(" "))
+            }
+
+            // 신부 이름: last_bride_name_en + " " + bride_name_en
+            const brideParts: string[] = []
+            if (settingsNames.last_bride_name_en) {
+                brideParts.push(settingsNames.last_bride_name_en.trim())
             }
             if (settingsNames.bride_name_en) {
-                setResolvedBrideName(settingsNames.bride_name_en)
-                updated = true
+                brideParts.push(settingsNames.bride_name_en.trim())
             }
-            if (updated) return
+            if (brideParts.length > 0) {
+                setResolvedBrideName(brideParts.join(" "))
+            }
 
-            // 2) 폴백: invite에서 이름 사용
-            const names = await getInviteNamesByPageId(pageId || "")
-            if (!mounted) return
-            if (names.groom_name && !groomName) setResolvedGroomName(names.groom_name)
-            if (names.bride_name && !brideName) setResolvedBrideName(names.bride_name)
+            // 2) 폴백: invite에서 이름 사용 (last name이 없을 때만)
+            if (groomParts.length === 0 || brideParts.length === 0) {
+                const names = await getInviteNamesByPageId(pageId)
+                if (!mounted) return
+                if (groomParts.length === 0 && names.groom_name) {
+                    setResolvedGroomName(names.groom_name)
+                }
+                if (brideParts.length === 0 && names.bride_name) {
+                    setResolvedBrideName(names.bride_name)
+                }
+            }
         })()
         return () => { mounted = false }
-    }, [pageId, groomName, brideName])
+    }, [pageId])
 
     useEffect(() => {
         adjustTextSize()
@@ -166,20 +203,57 @@ export default function EternalNameSection(props: EternalNameSectionProps) {
         }
     }, [])
 
+    // Sloop Script Pro 폰트 스택을 안전하게 가져오기
+    const sloopScriptProFontFamily = useMemo(() => {
+        try {
+            return (
+                typography?.helpers?.stacks?.sloopScriptPro ||
+                '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif'
+            )
+        } catch {
+            return '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif'
+        }
+    }, [])
+
     return (
         <div
-            ref={nameContainerRef}
             style={{
                 width: "100%",
-                maxWidth: "439px",
-                flexDirection: "column",
-                justifyContent: "flex-start",
-                alignItems: "center",
-                gap: `${gapSize}px`,
                 display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "30px",
                 ...style,
             }}
         >
+            {/* The Marriage of 텍스트 */}
+            <div
+                style={{
+                    width: "fit-content",
+                    height: "fit-content",
+                    textAlign: "center",
+                    fontSize: "28px",
+                    color: "black",
+                    lineHeight: "1.2em",
+                    fontFamily: sloopScriptProFontFamily,
+                }}
+            >
+                The Marriage of
+            </div>
+
+            {/* 이름 섹션 */}
+            <div
+                ref={nameContainerRef}
+                style={{
+                    width: "100%",
+                    maxWidth: "439px",
+                    flexDirection: "column",
+                    justifyContent: "flex-start",
+                    alignItems: "center",
+                    gap: `${gapSize}px`,
+                    display: "flex",
+                }}
+            >
             {/* 신랑 이름 */}
             <div
                 ref={groomRef}
@@ -192,7 +266,7 @@ export default function EternalNameSection(props: EternalNameSectionProps) {
                     fontWeight: 400,
                     lineHeight: "32px",
                     wordWrap: "break-word",
-                    letterSpacing: "0.02em",
+                    letterSpacing: "-0.03em",
                     whiteSpace: "pre",
                     overflow: "hidden",
                 }}
@@ -230,12 +304,13 @@ export default function EternalNameSection(props: EternalNameSectionProps) {
                     fontWeight: 400,
                     lineHeight: "32px",
                     wordWrap: "break-word",
-                    letterSpacing: "0.02em",
+                    letterSpacing: "-0.03em",
                     whiteSpace: "pre",
                     overflow: "hidden",
                 }}
             >
                 {resolvedBrideName.toUpperCase().replace(/\s+/g, '  ')}
+            </div>
             </div>
         </div>
     )
