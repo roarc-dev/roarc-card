@@ -8,8 +8,7 @@ import typography from "@/lib/typography.js"
 
 // 컴포넌트 imports
 import BGM from '@/components/wedding/BGM'
-import NameSection from '@/components/wedding/NameSection'
-import PhotoSectionProxy from '@/components/wedding/PhotoSectionProxy'
+import MainSection from '@/components/wedding/MainSection'
 import WeddingInvitationSection from '@/components/wedding/WeddingInvitationSection'
 import CalendarSection from '@/components/wedding/CalendarSection'
 import LocationUnified from '@/components/wedding/LocationUnified'
@@ -52,16 +51,44 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
   }, [])
 
   // 컴포넌트 순서 결정 (설정에서 가져오거나 기본값 사용)
+  // NameSection과 PhotoSectionProxy를 MainSection으로 통합
   const componentOrder = useMemo(() => {
+    let order: ComponentType[]
     if (pageSettings.component_order && Array.isArray(pageSettings.component_order)) {
-      const order = pageSettings.component_order as ComponentType[]
-      console.log('[WeddingPage] component_order from settings:', order)
-      console.log('[WeddingPage] KakaoShare 포함 여부:', order.includes('KakaoShare'))
-      return order
+      order = pageSettings.component_order as ComponentType[]
+    } else {
+      order = DEFAULT_COMPONENT_ORDER
     }
-    console.log('[WeddingPage] DEFAULT_COMPONENT_ORDER 사용:', DEFAULT_COMPONENT_ORDER)
-    console.log('[WeddingPage] KakaoShare 포함 여부:', DEFAULT_COMPONENT_ORDER.includes('KakaoShare'))
-    return DEFAULT_COMPONENT_ORDER
+    
+    // NameSection과 PhotoSectionProxy를 MainSection으로 통합
+    const normalized: ComponentType[] = []
+    let skipNextPhotoSection = false
+    
+    for (let i = 0; i < order.length; i++) {
+      const current = order[i]
+      
+      if (skipNextPhotoSection && current === 'PhotoSectionProxy') {
+        // 이전에 NameSection을 MainSection으로 변환했으므로 PhotoSectionProxy는 건너뛰기
+        skipNextPhotoSection = false
+        continue
+      }
+      
+      if (current === 'NameSection') {
+        // NameSection을 MainSection으로 대체
+        normalized.push('MainSection' as ComponentType)
+        // 다음 PhotoSectionProxy는 건너뛰기
+        skipNextPhotoSection = true
+      } else if (current === 'PhotoSectionProxy' && !skipNextPhotoSection) {
+        // PhotoSectionProxy가 NameSection 없이 단독으로 나타나는 경우는 드물지만, MainSection으로 대체
+        normalized.push('MainSection' as ComponentType)
+      } else {
+        normalized.push(current)
+        skipNextPhotoSection = false
+      }
+    }
+    
+    console.log('[WeddingPage] component_order (normalized):', normalized)
+    return normalized
   }, [pageSettings.component_order])
 
   // 컴포넌트 렌더링 함수
@@ -79,19 +106,9 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
             pageId={pageId}
           />
         )
-      case 'NameSection':
+      case 'MainSection':
         return (
-          <NameSection
-            key={`${type}-${index}`}
-            groomName={pageSettings.groom_name}
-            brideName={pageSettings.bride_name}
-            pageId={pageId}
-            style={{ width: '88%' }}
-          />
-        )
-      case 'PhotoSectionProxy':
-        return (
-          <PhotoSectionProxy
+          <MainSection
             key={`${type}-${index}`}
             pageId={pageId}
           />

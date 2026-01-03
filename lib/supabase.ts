@@ -46,6 +46,9 @@ export interface PageSettings {
   main_photo_url?: string
   component_order?: string[] // 컴포넌트 순서 배열
   theme?: string
+  type?: 'papillon' | 'eternal' | 'fiore' | 'mobile' // 페이지 타입
+  kko_title?: string // 카카오톡 공유 제목
+  kko_date?: string // 카카오톡 공유 날짜
   created_at?: string
   updated_at?: string
 }

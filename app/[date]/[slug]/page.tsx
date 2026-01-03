@@ -30,13 +30,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
   }
 
-  const groomName = pageSettings.groom_name || pageSettings.groom_name_en || ''
-  const brideName = pageSettings.bride_name || pageSettings.bride_name_en || ''
-  const title = groomName && brideName ? `${groomName} ♥ ${brideName} 결혼합니다` : 'roarc mobile card'
-
-  const description = pageSettings.venue_name
-    ? `${pageSettings.wedding_date || ''} ${pageSettings.venue_name}`
-    : 'We make Romantic Art Creations'
+  // page_settings 테이블의 kko_title과 kko_date 사용
+  const title = pageSettings.kko_title?.trim() || 'roarc mobile card'
+  const description = pageSettings.kko_date?.trim() || 'We make Romantic Art Creations'
 
   const image = pageSettings.main_photo_url || 'https://cdn.roarc.kr/data/roarc_SEO_basic.jpg'
 

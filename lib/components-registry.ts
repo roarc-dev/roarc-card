@@ -7,8 +7,9 @@
 
 // 컴포넌트 타입 정의
 export type ComponentType = 
-  | 'NameSection'           // 신랑/신부 이름 섹션
-  | 'PhotoSectionProxy'     // 메인 사진
+  | 'MainSection'           // 메인 섹션 (NameSection + PhotoSectionProxy 통합, type에 따라 다른 컴포넌트 렌더)
+  | 'NameSection'           // 신랑/신부 이름 섹션 (deprecated: MainSection 사용)
+  | 'PhotoSectionProxy'     // 메인 사진 (deprecated: MainSection 사용)
   | 'Info'                  // 청첩장 본문
   | 'InviteName'            // 초대 이름
   | 'CalendarProxy'         // 캘린더
@@ -36,8 +37,7 @@ export type ComponentType =
 // 기본 컴포넌트 순서 (테마별로 다를 수 있음)
 export const DEFAULT_COMPONENT_ORDER: ComponentType[] = [
   'bgm',                  // 배경음악 (맨 위에 위치)
-  'NameSection',
-  'PhotoSectionProxy',
+  'MainSection',          // 메인 섹션 (type에 따라 다른 컴포넌트 렌더)
   'InviteName',           // 초대 이름 (초대하는 분들)
   'CalendarProxy',
   'CalendarAddBtn',
@@ -61,18 +61,25 @@ export interface ComponentMeta {
 }
 
 export const COMPONENT_REGISTRY: Record<ComponentType, ComponentMeta> = {
+  MainSection: {
+    type: 'MainSection',
+    displayName: '메인 섹션',
+    description: '이름 및 메인 사진 (type에 따라 papillon/eternal/fiore 렌더)',
+    isRequired: true,
+    defaultVisible: true,
+  },
   NameSection: {
     type: 'NameSection',
     displayName: '이름 섹션',
-    description: '신랑/신부 이름 표시',
-    isRequired: true,
-    defaultVisible: true,
+    description: '신랑/신부 이름 표시 (deprecated: MainSection 사용)',
+    isRequired: false,
+    defaultVisible: false,
   },
   PhotoSectionProxy: {
     type: 'PhotoSectionProxy',
     displayName: '메인 사진',
-    description: '대표 사진 표시',
-    defaultVisible: true,
+    description: '대표 사진 표시 (deprecated: MainSection 사용)',
+    defaultVisible: false,
   },
   Info: {
     type: 'Info',
