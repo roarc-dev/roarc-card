@@ -656,7 +656,6 @@ export default function LocationUnified({
                     lineHeight: "0.7em",
                     textAlign: "center",
                     whiteSpace: "nowrap",
-                    marginBottom: "20px",
                     color: "#000000",
                 }}
             >
