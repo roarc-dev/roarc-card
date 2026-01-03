@@ -230,20 +230,59 @@ export default function FioreNameSection(props: FioreNameSectionProps) {
         }
     }, [])
 
+    // Sloop Script Pro 폰트 스택을 안전하게 가져오기
+    const sloopScriptProFontFamily = useMemo(() => {
+        try {
+            return (
+                typography?.helpers?.stacks?.sloopScriptPro ||
+                '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif'
+            )
+        } catch {
+            return '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif'
+        }
+    }, [])
+
     return (
         <div
-            ref={nameContainerRef}
             style={{
                 width: "100%",
-                maxWidth: "439px",
-                flexDirection: "column",
-                justifyContent: "flex-start",
-                alignItems: "center",
-                gap: `${gapSize}px`,
                 display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "20px",
                 ...style,
             }}
         >
+            {/* THE Marriage OF 텍스트 */}
+            <div
+                style={{
+                    width: "100%",
+                    textAlign: "center",
+                    fontSize: "16px",
+                    color: "black",
+                    lineHeight: "1.4",
+                }}
+            >
+                <span style={{ fontFamily: p22FontFamily }}>THE</span>
+                {" "}
+                <span style={{ fontFamily: sloopScriptProFontFamily }}>Marriage</span>
+                {" "}
+                <span style={{ fontFamily: p22FontFamily }}>OF</span>
+            </div>
+
+            {/* 이름 섹션 */}
+            <div
+                ref={nameContainerRef}
+                style={{
+                    width: "100%",
+                    maxWidth: "439px",
+                    flexDirection: "column",
+                    justifyContent: "flex-start",
+                    alignItems: "center",
+                    gap: `${gapSize}px`,
+                    display: "flex",
+                }}
+            >
             {/* 신랑 이름 */}
             <motion.div
                 ref={groomRef}
@@ -315,6 +354,7 @@ export default function FioreNameSection(props: FioreNameSectionProps) {
             >
                 {resolvedBrideName.toUpperCase().replace(/\s+/g, " ")}
             </motion.div>
+            </div>
         </div>
     )
 }

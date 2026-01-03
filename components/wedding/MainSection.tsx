@@ -126,8 +126,6 @@ export default function MainSection(props: MainSectionProps) {
       return (
         <div style={style}>
           <FioreNameSection
-            groomName={pageSettings?.groom_name_en}
-            brideName={pageSettings?.bride_name_en}
             pageId={pageId}
             style={{ width: '100%', maxWidth: '439px' }}
           />

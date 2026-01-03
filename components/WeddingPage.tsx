@@ -205,23 +205,29 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
     }
   }
 
+  // pageSettings의 type 확인 (papillon일 때만 mobileCover 표시)
+  const pageType = pageSettings.type || 'papillon'
+  const shouldShowMobileCover = pageType === 'papillon'
+
   return (
     <div className="mcard-container" style={{ position: 'relative' }}>
-      {/* 모바일 커버 오버레이 (컴포넌트 자체는 수정하지 않고, 페이지에서 위치만 제어) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-          width: '100%',
-          height: '1600px',
-          pointerEvents: 'none',
-        }}
-      >
-        <MobileCoverAnimation width={430} height={1600} />
-      </div>
+      {/* 모바일 커버 오버레이 (papillon 타입일 때만 표시) */}
+      {shouldShowMobileCover && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            width: '100%',
+            height: '1600px',
+            pointerEvents: 'none',
+          }}
+        >
+          <MobileCoverAnimation width={430} height={1600} />
+        </div>
+      )}
 
       {/* 컴포넌트들을 순서대로 렌더링 */}
       <main
