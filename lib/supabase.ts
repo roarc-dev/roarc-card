@@ -55,9 +55,10 @@ export interface PageSettings {
 
 /**
  * user_url로 페이지 설정 조회
- *
- * @deprecated proxy API가 `userUrl` 파라미터를 지원하지 않는 경우가 있어, 현재는 page_id 조회로 폴백합니다.
- * - 호환성 목적: 기존 호출부 유지
+ * 
+ * - user_url이 있으면 user_url로 조회
+ * - 없으면 page_id로 폴백
+ * - proxy API가 userUrl 파라미터를 지원하는지 확인 필요
  */
 export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSettings | null> {
   const normalized = userUrl?.trim()
@@ -72,17 +73,17 @@ export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSet
       }
     )
     if (!response.ok) {
-      // 하위호환: 일부 환경에서 userUrl 지원이 없을 수 있어 pageId로 재시도
-      return await getPageSettingsByPageId(normalized)
+      // userUrl 지원이 없을 수 있으므로 null 반환 (호출자가 pageId로 폴백)
+      return null
     }
     const result = await response.json()
     if (result.success && result.data) {
       return result.data as PageSettings
     }
-    return await getPageSettingsByPageId(normalized)
+    return null
   } catch (error) {
     console.error('[getPageSettingsByUserUrl] Error:', error)
-    return await getPageSettingsByPageId(normalized)
+    return null
   }
 }
 

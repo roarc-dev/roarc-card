@@ -2,13 +2,14 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import {
   getPageSettingsByPageId,
+  getPageSettingsByUserUrl,
   PageSettings,
   parseDateSegmentToIso,
 } from '@/lib/supabase'
 import WeddingPage from '@/components/WeddingPage'
 
 interface PageProps {
-  params: Promise<{ date: string; slug: string }> | { date: string; slug: string } // slug는 실제로 pageId
+  params: Promise<{ date: string; slug: string }> | { date: string; slug: string } // slug는 user_url 또는 page_id
 }
 
 /**
@@ -18,10 +19,11 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   // Next.js 15+에서는 params가 Promise일 수 있음
   const resolvedParams = await Promise.resolve(params)
-  const { slug } = resolvedParams // slug는 pageId
+  const { slug } = resolvedParams // slug는 user_url 또는 page_id
 
-  // pageId로만 조회
-  const pageSettings = await getPageSettingsByPageId(slug)
+  // user_url 우선 조회, 없으면 page_id로 폴백
+  const pageSettings = await getPageSettingsByUserUrl(slug) 
+    || await getPageSettingsByPageId(slug)
 
   if (!pageSettings) {
     return {
@@ -57,15 +59,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /**
  * 동적 라우팅 페이지
  *
- * URL: /[date]/[pageId]
+ * URL: /[date]/[slug]
  * - date: YYMMDD 형식 (예: 251011)
- * - pageId: page_settings 테이블의 page_id
- * - 단순히 pageId로 조회하여 페이지 렌더링 (redirect 없음)
+ * - slug: page_settings 테이블의 user_url 또는 page_id
+ * - user_url 우선 조회, 없으면 page_id로 폴백
  */
 export default async function Page({ params }: PageProps) {
   // Next.js 15+에서는 params가 Promise일 수 있음
   const resolvedParams = await Promise.resolve(params)
-  const { date, slug } = resolvedParams // slug는 실제로 pageId
+  const { date, slug } = resolvedParams // slug는 user_url 또는 page_id
 
   console.log('[app/[date]/[slug]] Page called with:', { date, slug, rawParams: params })
 
@@ -83,12 +85,17 @@ export default async function Page({ params }: PageProps) {
   const isoFromSegment = parseDateSegmentToIso(date)
   console.log('[app/[date]/[slug]] Date parsed:', isoFromSegment)
 
-  // pageId로만 조회 (단순화)
-  const pageSettings: PageSettings | null = await getPageSettingsByPageId(slug)
+  // user_url 우선 조회, 없으면 page_id로 폴백
+  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(slug)
+  if (!pageSettings) {
+    console.log('[app/[date]/[slug]] Not found by user_url, trying page_id')
+    pageSettings = await getPageSettingsByPageId(slug)
+  }
 
   console.log('[app/[date]/[slug]] Page settings result:', { 
     found: !!pageSettings, 
-    pageId: pageSettings?.page_id 
+    pageId: pageSettings?.page_id,
+    userUrl: pageSettings?.user_url
   })
 
   if (!pageSettings) {
