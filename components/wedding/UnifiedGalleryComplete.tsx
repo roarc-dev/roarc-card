@@ -765,6 +765,7 @@ export default function UnifiedGalleryComplete({
             return (
                 <>
                     <motion.div
+                        data-allow-zoom={galleryZoomEnabled ? "true" : undefined}
                         style={labelStyleWithMargin}
                         initial={{ opacity: 0, y: 50 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -774,6 +775,7 @@ export default function UnifiedGalleryComplete({
                         GALLERY
                     </motion.div>
                     <motion.div
+                        data-allow-zoom={galleryZoomEnabled ? "true" : undefined}
                         style={{
                             width: "100%",
                             height: "529px",
@@ -960,6 +962,7 @@ export default function UnifiedGalleryComplete({
         return (
             <>
                 <motion.div
+                    data-allow-zoom={galleryZoomEnabled ? "true" : undefined}
                     style={labelStyleWithMargin}
                     initial={{ opacity: 0, y: 50 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -969,6 +972,7 @@ export default function UnifiedGalleryComplete({
                     GALLERY
                 </motion.div>
                 <motion.div
+                    data-allow-zoom={galleryZoomEnabled ? "true" : undefined}
                     style={{
                         width: "100%",
                         height: "460px", // 고정 높이
