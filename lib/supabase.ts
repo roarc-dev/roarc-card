@@ -58,16 +58,36 @@ export interface PageSettings {
 /**
  * user_url로 페이지 설정 조회
  * 
- * - user_url이 있으면 user_url로 조회
- * - 없으면 page_id로 폴백
- * - proxy API가 userUrl 파라미터를 지원하는지 확인 필요
+ * - user_url과 wedding_date가 모두 일치해야만 조회 성공
+ * - 보안: dateSegment 필수 (같은 user_url을 가진 다른 사용자의 페이지 접근 방지)
+ * 
+ * @param userUrl - user_url 또는 page_id
+ * @param dateSegment - YYMMDD 형식의 날짜 세그먼트 (필수, wedding_date 검증에 사용)
  */
-export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSettings | null> {
+export async function getPageSettingsByUserUrl(
+  userUrl: string,
+  dateSegment: string
+): Promise<PageSettings | null> {
   const normalized = userUrl?.trim()
   if (!normalized) return null
+  
+  // dateSegment 필수 검증
+  const normalizedDate = dateSegment?.trim()
+  if (!normalizedDate) {
+    console.warn('[getPageSettingsByUserUrl] dateSegment is required')
+    return null
+  }
+  
+  // dateSegment 형식 검증 (YYMMDD: 6자리 숫자)
+  if (!/^\d{6}$/.test(normalizedDate)) {
+    console.warn('[getPageSettingsByUserUrl] Invalid dateSegment format:', normalizedDate)
+    return null
+  }
+  
   try {
+    // dateSegment를 쿼리 파라미터에 포함 (API에서 필수로 요구)
     const response = await fetch(
-      `${PROXY_BASE_URL}/api/page-settings?userUrl=${encodeURIComponent(normalized)}`,
+      `${PROXY_BASE_URL}/api/page-settings?userUrl=${encodeURIComponent(normalized)}&date=${encodeURIComponent(normalizedDate)}`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -91,6 +111,22 @@ export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSet
         })
         return null
       }
+      
+      // 조회된 wedding_date와 일치하는지 검증 (이중 안전장치)
+      if (pageSettings.wedding_date) {
+        const requestedIso = parseDateSegmentToIso(normalizedDate)
+        const actualIso = pageSettings.wedding_date.trim()
+        
+        if (requestedIso && requestedIso !== actualIso) {
+          console.log('[getPageSettingsByUserUrl] wedding_date mismatch:', {
+            requested: requestedIso,
+            actual: actualIso,
+            dateSegment: normalizedDate,
+          })
+          return null
+        }
+      }
+      
       return pageSettings
     }
     return null

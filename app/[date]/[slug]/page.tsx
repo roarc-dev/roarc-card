@@ -19,10 +19,19 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   // Next.js 15+에서는 params가 Promise일 수 있음
   const resolvedParams = await Promise.resolve(params)
-  const { slug } = resolvedParams // slug는 user_url 또는 page_id
+  const { date, slug } = resolvedParams // slug는 user_url 또는 page_id
 
-  // user_url 우선 조회, 없으면 page_id로 폴백
-  let pageSettings = await getPageSettingsByUserUrl(slug)
+  // 날짜 형식 검증
+  const isoFromSegment = parseDateSegmentToIso(date || '')
+  if (!isoFromSegment) {
+    return {
+      title: 'roarc mobile card',
+      description: 'We make Romantic Art Creations',
+    }
+  }
+
+  // user_url 우선 조회 (date 파라미터 포함하여 wedding_date 검증)
+  let pageSettings = await getPageSettingsByUserUrl(slug, date)
   
   // user_url로 조회 성공했지만 실제 DB의 user_url과 일치하지 않으면 기본 메타데이터 반환
   if (pageSettings && pageSettings.user_url && pageSettings.user_url !== slug) {
@@ -35,6 +44,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // user_url 조회 실패 시에만 page_id로 폴백
   if (!pageSettings) {
     pageSettings = await getPageSettingsByPageId(slug)
+    
+    // page_id로 조회한 경우에도 wedding_date 검증
+    if (pageSettings && pageSettings.wedding_date) {
+      const actualIso = pageSettings.wedding_date.trim()
+      if (isoFromSegment !== actualIso) {
+        return {
+          title: 'roarc mobile card',
+          description: 'We make Romantic Art Creations',
+        }
+      }
+    }
   }
 
   if (!pageSettings) {
@@ -94,12 +114,16 @@ export default async function Page({ params }: PageProps) {
     notFound()
   }
 
-  // 날짜 형식 검증 (선택적 - 유효하지 않아도 계속 진행)
+  // 날짜 형식 검증
   const isoFromSegment = parseDateSegmentToIso(date)
+  if (!isoFromSegment) {
+    console.log('[app/[date]/[slug]] Invalid date format:', date)
+    notFound()
+  }
   console.log('[app/[date]/[slug]] Date parsed:', isoFromSegment)
 
-  // user_url 우선 조회, 없으면 page_id로 폴백
-  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(slug)
+  // user_url 우선 조회 (date 파라미터 포함하여 wedding_date 검증)
+  let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(slug, date)
   
   // user_url로 조회 성공했지만 실제 DB의 user_url과 일치하지 않으면 notFound
   // (이전 user_url로 접근하는 것을 방지)
@@ -115,6 +139,19 @@ export default async function Page({ params }: PageProps) {
   if (!pageSettings) {
     console.log('[app/[date]/[slug]] Not found by user_url, trying page_id')
     pageSettings = await getPageSettingsByPageId(slug)
+    
+    // page_id로 조회한 경우에도 wedding_date 검증
+    if (pageSettings && pageSettings.wedding_date) {
+      const actualIso = pageSettings.wedding_date.trim()
+      if (isoFromSegment !== actualIso) {
+        console.log('[app/[date]/[slug]] wedding_date mismatch (page_id lookup):', {
+          requested: isoFromSegment,
+          actual: actualIso,
+          dateSegment: date,
+        })
+        notFound()
+      }
+    }
   }
 
   console.log('[app/[date]/[slug]] Page settings result:', { 
