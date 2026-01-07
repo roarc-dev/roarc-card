@@ -44,6 +44,7 @@ export interface PageSettings {
   venue_lat?: number
   venue_lng?: number
   main_photo_url?: string
+  tag_image?: string // OG 태그 이미지 (링크 공유 썸네일)
   component_order?: string[] // 컴포넌트 순서 배열
   theme?: string
   type?: 'papillon' | 'eternal' | 'fiore' | 'mobile' // 페이지 타입

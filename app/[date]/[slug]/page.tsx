@@ -36,7 +36,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = pageSettings.kko_title?.trim() || 'roarc mobile card'
   const description = pageSettings.kko_date?.trim() || 'We make Romantic Art Creations'
 
-  const image = pageSettings.main_photo_url || 'https://cdn.roarc.kr/data/roarc_SEO_basic.jpg'
+  // tag_image 우선 사용, 없으면 main_photo_url, 둘 다 없으면 기본 이미지
+  const image = pageSettings.tag_image || pageSettings.main_photo_url || 'https://cdn.roarc.kr/data/roarc_SEO_basic.jpg'
 
   return {
     title,
