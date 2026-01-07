@@ -22,8 +22,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = resolvedParams // slug는 user_url 또는 page_id
 
   // user_url 우선 조회, 없으면 page_id로 폴백
-  const pageSettings = await getPageSettingsByUserUrl(slug) 
-    || await getPageSettingsByPageId(slug)
+  let pageSettings = await getPageSettingsByUserUrl(slug)
+  
+  // user_url로 조회 성공했지만 실제 DB의 user_url과 일치하지 않으면 기본 메타데이터 반환
+  if (pageSettings && pageSettings.user_url && pageSettings.user_url !== slug) {
+    return {
+      title: 'roarc mobile card',
+      description: 'We make Romantic Art Creations',
+    }
+  }
+  
+  // user_url 조회 실패 시에만 page_id로 폴백
+  if (!pageSettings) {
+    pageSettings = await getPageSettingsByPageId(slug)
+  }
 
   if (!pageSettings) {
     return {
@@ -88,6 +100,18 @@ export default async function Page({ params }: PageProps) {
 
   // user_url 우선 조회, 없으면 page_id로 폴백
   let pageSettings: PageSettings | null = await getPageSettingsByUserUrl(slug)
+  
+  // user_url로 조회 성공했지만 실제 DB의 user_url과 일치하지 않으면 notFound
+  // (이전 user_url로 접근하는 것을 방지)
+  if (pageSettings && pageSettings.user_url && pageSettings.user_url !== slug) {
+    console.log('[app/[date]/[slug]] user_url mismatch - requested slug does not match DB user_url:', {
+      requested: slug,
+      actual: pageSettings.user_url,
+    })
+    notFound()
+  }
+  
+  // user_url 조회 실패 시에만 page_id로 폴백
   if (!pageSettings) {
     console.log('[app/[date]/[slug]] Not found by user_url, trying page_id')
     pageSettings = await getPageSettingsByPageId(slug)
@@ -96,13 +120,27 @@ export default async function Page({ params }: PageProps) {
   console.log('[app/[date]/[slug]] Page settings result:', { 
     found: !!pageSettings, 
     pageId: pageSettings?.page_id,
-    userUrl: pageSettings?.user_url
+    userUrl: pageSettings?.user_url,
+    requestedSlug: slug,
   })
 
   if (!pageSettings) {
     console.log('[app/[date]/[slug]] Page settings not found, calling notFound()')
     notFound()
   }
+  
+  // page_id로 조회한 경우, 실제 user_url이 있으면 해당 URL로 리다이렉트해야 함
+  // 하지만 현재는 page_id로도 접근 가능하도록 허용 (하위 호환)
+  // 향후 user_url만 허용하려면 아래 주석을 해제
+  /*
+  if (pageSettings.user_url && pageSettings.user_url !== slug) {
+    // 실제 user_url이 있으면 해당 URL로 리다이렉트
+    const formattedDate = formatWeddingDateToSegment(pageSettings.wedding_date || '')
+    if (formattedDate) {
+      redirect(`/${formattedDate}/${pageSettings.user_url}`)
+    }
+  }
+  */
 
   console.log('[app/[date]/[slug]] Rendering WeddingPage')
   // redirect 로직 제거 - 단순히 페이지 렌더링만 수행

@@ -70,7 +70,8 @@ export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSet
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        next: { revalidate: 60 },
+        // user_url 변경 시 즉시 반영되도록 캐시 비활성화
+        next: { revalidate: 0 },
       }
     )
     if (!response.ok) {
@@ -79,7 +80,17 @@ export async function getPageSettingsByUserUrl(userUrl: string): Promise<PageSet
     }
     const result = await response.json()
     if (result.success && result.data) {
-      return result.data as PageSettings
+      const pageSettings = result.data as PageSettings
+      // 조회된 user_url과 요청한 userUrl이 일치하는지 확인
+      // 이전 user_url로 접근하는 것을 방지
+      if (pageSettings.user_url && pageSettings.user_url !== normalized) {
+        console.log('[getPageSettingsByUserUrl] user_url mismatch:', {
+          requested: normalized,
+          actual: pageSettings.user_url,
+        })
+        return null
+      }
+      return pageSettings
     }
     return null
   } catch (error) {
