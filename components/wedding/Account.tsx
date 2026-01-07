@@ -281,78 +281,14 @@ export default function AccountBtn(props: AccountBtnProps) {
         )
     }
 
-    // 에러 상태
+    // 에러 상태: 컴포넌트를 렌더링하지 않음
     if (error) {
-        return (
-            <div
-                style={{
-                    marginTop: 80,
-                    marginBottom: 80,
-                    display: "flex",
-                    justifyContent: "center",
-                }}
-            >
-                <div
-                    style={{
-                        width: "100%",
-                        height: 54,
-                        background: "#EBEBEB",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        ...style,
-                    }}
-                >
-                    <div
-                        style={{
-                            color: "black",
-                            fontSize: 14,
-                            fontFamily: pretendardFontFamily,
-                            fontWeight: 600,
-                        }}
-                    >
-                        계좌 정보 없음
-                    </div>
-                </div>
-            </div>
-        )
+        return null
     }
 
     // 계좌 정보가 없는 경우
     if (!accountInfo) {
-        return (
-            <div
-                style={{
-                    marginTop: 80,
-                    marginBottom: 80,
-                    display: "flex",
-                    justifyContent: "center",
-                }}
-            >
-                <div
-                    style={{
-                        width: "100%",
-                        height: 54,
-                        background: "#EBEBEB",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        ...style,
-                    }}
-                >
-                    <div
-                        style={{
-                            color: "black",
-                            fontSize: 14,
-                            fontFamily: pretendardFontFamily,
-                            fontWeight: 600,
-                        }}
-                    >
-                        계좌 정보 없음
-                    </div>
-                </div>
-            </div>
-        )
+        return null
     }
 
     return (
