@@ -41,10 +41,8 @@ export default function RootLayout({
           src="https://cdn.roarc.kr/fonts/typography.js"
           strategy="beforeInteractive"
         />
-      </head>
-      <body>
-        {/* 모바일 핀치 줌 및 과도한 확대 방지 스크립트 */}
-        <Script id="prevent-mobile-zoom" strategy="afterInteractive">
+        {/* 모바일 핀치 줌 및 과도한 확대 방지 스크립트 (최대한 이른 타이밍에 삽입) */}
+        <Script id="prevent-mobile-zoom" strategy="beforeInteractive">
           {`
           document.addEventListener('DOMContentLoaded', function () {
             // 멀티터치 핀치 줌 방지
@@ -149,6 +147,8 @@ export default function RootLayout({
           });
         `}
         </Script>
+      </head>
+      <body>
         {/* 카카오 SDK 스크립트 - 단순 로드만 수행, 초기화는 컴포넌트에서 처리 */}
         <Script
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
