@@ -118,6 +118,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <WeddingInvitationSection
             key={`${type}-${index}`}
             pageId={pageId}
+            contactEnabled={pageSettings.contact !== 'off'}
           />
         )
       case 'CalendarProxy':

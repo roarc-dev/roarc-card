@@ -8,11 +8,13 @@ import WeddingContactModal from "./WeddingContactModal"
 interface WeddingInvitationSectionProps {
     pageId: string
     style?: React.CSSProperties
+    contactEnabled?: boolean
 }
 
 export default function WeddingInvitationSection({
     pageId,
-    style
+    style,
+    contactEnabled = true,
 }: WeddingInvitationSectionProps) {
     // Layer in View 애니메이션 설정
     const springConfig = {
@@ -48,26 +50,30 @@ export default function WeddingInvitationSection({
                 <InviteName pageId={pageId} />
             </motion.div>
 
-            {/* 40px 여백 */}
-            <div style={{ height: '40px' }} />
+            {contactEnabled && (
+                <>
+                    {/* 40px 여백 */}
+                    <div style={{ height: '40px' }} />
 
-            {/* 축하 연락하기 버튼 */}
-            <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-                transition={springConfig}
-                variants={fadeInUpVariants}
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flexWrap: 'nowrap',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
-            >
-                <WeddingContactModal pageId={pageId} />
-            </motion.div>
+                    {/* 축하 연락하기 버튼 */}
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, amount: 0.3 }}
+                        transition={springConfig}
+                        variants={fadeInUpVariants}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            flexWrap: 'nowrap',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
+                        <WeddingContactModal pageId={pageId} />
+                    </motion.div>
+                </>
+            )}
         </section>
     )
 }
