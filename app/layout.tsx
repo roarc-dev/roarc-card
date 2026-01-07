@@ -23,9 +23,12 @@ export const metadata: Metadata = {
   },
 }
 
+// viewport에 user-scalable=no 추가
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
@@ -47,101 +50,82 @@ export default function RootLayout({
           (function() {
             'use strict';
 
-            // 즉시 실행하여 최대한 이른 타이밍에 이벤트 리스너 등록
+            // CSS 주입 (최우선)
+            var style = document.createElement('style');
+            style.textContent = '* { touch-action: manipulation; -webkit-user-select: none; } [data-allow-zoom="true"] { touch-action: auto; -webkit-user-select: auto; }';
+            (document.head || document.documentElement).appendChild(style);
+
             function preventZoom(e) {
+              var target = e.target;
               // data-allow-zoom="true" 영역에서는 줌 허용
-              const allowZoomTarget = (e.target as HTMLElement | null)?.closest?.('[data-allow-zoom="true"]');
-              if (allowZoomTarget) {
-                return;
+              while (target && target !== document) {
+                if (target.getAttribute && target.getAttribute('data-allow-zoom') === 'true') {
+                  return;
+                }
+                target = target.parentNode;
               }
               e.preventDefault();
               e.stopImmediatePropagation();
               return false;
             }
 
-            // 멀티터치 핀치 줌 방지 (강력한 우선순위)
-            document.addEventListener('touchstart', function(e) {
-              if (e.touches.length > 1) {
-                preventZoom(e);
-              }
-            }, { passive: false, capture: true });
-
-            // 핀치 제스처 방지 (iOS Safari 등)
-            ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(eventType) {
-              document.addEventListener(eventType, preventZoom, { passive: false, capture: true });
+            // DOMContentLoaded를 기다리지 않고 즉시 등록
+            var events = ['touchstart', 'touchmove', 'touchend', 'gesturestart', 'gesturechange', 'gestureend'];
+            
+            events.forEach(function(eventType) {
+              document.addEventListener(eventType, function(e) {
+                if (eventType === 'touchstart' || eventType === 'touchmove') {
+                  if (e.touches && e.touches.length > 1) {
+                    preventZoom(e);
+                  }
+                } else if (eventType.indexOf('gesture') !== -1) {
+                  preventZoom(e);
+                }
+              }, { passive: false, capture: true });
             });
 
-            // 추가 핀치 이벤트 (일부 브라우저)
-            ['pinchstart', 'pinchchange', 'pinchend'].forEach(function(eventType) {
-              document.addEventListener(eventType, preventZoom, { passive: false, capture: true });
-            });
-
-            // 트랙패드/휠 줌 방지
+            // 휠 줌 방지
             document.addEventListener('wheel', function(e) {
-              if (e.ctrlKey || e.metaKey) { // Ctrl+휠 또는 Cmd+휠 (줌)
+              if (e.ctrlKey || e.metaKey) {
                 preventZoom(e);
               }
             }, { passive: false, capture: true });
 
             // 더블탭 줌 방지
-            let lastTouchEnd = 0;
-            let isDragging = false;
-
-            document.addEventListener('touchstart', function(e) {
-              const dragTarget = e.target.closest('[data-image-index], .image-manager-container');
-              if (dragTarget && e.touches.length === 1) {
-                setTimeout(function() {
-                  isDragging = true;
-                }, 400);
-              }
-            }, { passive: true, capture: true });
-
-            document.addEventListener('touchmove', function(e) {
-              if (e.target.closest('[data-image-index], .image-manager-container')) {
-                isDragging = true;
-              }
-            }, { passive: true, capture: true });
-
+            var lastTouchEnd = 0;
+            var tapTimeout = null;
+            
             document.addEventListener('touchend', function(event) {
-              const allowZoomTarget = (event.target as HTMLElement | null)?.closest?.('[data-allow-zoom="true"]');
-              if (allowZoomTarget) {
-                // 확대 허용 영역에서는 더블탭 방지하지 않음
-                return;
-              }
-
-              const isDragContainer =
-                event.target.closest('[data-image-index]') ||
-                event.target.closest('.image-manager-container');
-
-              // 드래그 영역이거나 드래그 중이면 더블탭 방지 안함
-              if (!isDragContainer && !isDragging) {
-                const now = Date.now();
-                if (now - lastTouchEnd <= 300) {
-                  event.preventDefault();
-                  event.stopImmediatePropagation();
+              var target = event.target;
+              
+              // data-allow-zoom 체크
+              while (target && target !== document) {
+                if (target.getAttribute && target.getAttribute('data-allow-zoom') === 'true') {
+                  return;
                 }
-                lastTouchEnd = now;
+                if (target.getAttribute && (
+                    target.getAttribute('data-image-index') !== null ||
+                    target.className && target.className.indexOf('image-manager-container') !== -1
+                )) {
+                  return;
+                }
+                target = target.parentNode;
               }
 
-              // 드래그 상태 리셋
-              setTimeout(function() {
-                isDragging = false;
-              }, 100);
+              var now = Date.now();
+              if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (tapTimeout) {
+                  clearTimeout(tapTimeout);
+                }
+              }
+              lastTouchEnd = now;
+              
+              tapTimeout = setTimeout(function() {
+                lastTouchEnd = 0;
+              }, 300);
             }, { passive: false, capture: true });
-
-            // 추가 안전장치: viewport 메타 태그 동적 수정 (필요시)
-            const viewport = document.querySelector('meta[name=viewport]');
-            if (viewport) {
-              const content = viewport.getAttribute('content') || '';
-              if (!content.includes('user-scalable=no')) {
-                viewport.setAttribute('content', content + ', user-scalable=no');
-              }
-            }
-
-            // CSS 주입으로 추가 방지
-            const style = document.createElement('style');
-            style.textContent = '* { touch-action: manipulation; } [data-allow-zoom="true"] { touch-action: auto; }';
-            document.head.appendChild(style);
 
           })();
         `}
@@ -165,7 +149,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-
