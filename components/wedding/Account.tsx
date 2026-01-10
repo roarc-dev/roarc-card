@@ -369,6 +369,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                 display: "flex",
                 justifyContent: "center",
                 backgroundColor: "#FAFAFA",
+                position: "relative",
             }}
         >
             <div
@@ -478,49 +479,49 @@ export default function AccountBtn(props: AccountBtnProps) {
                         />
                     </motion.div>
                 </motion.div>
-
-                {/* 복사 메시지 */}
-                <AnimatePresence>
-                    {showCopyMessage && (
-                        <motion.div
-                            style={mergeStyles({
-                                position: "fixed",
-                                top: "50%",
-                                left: "50%",
-                                transform: "translate(-50%, -50%)",
-                                width: "80%",
-                                maxWidth: 260,
-                                minHeight: 44,
-                                padding: "10px 12px",
-                                background: theme.color.surface,
-                                borderRadius: 8,
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                boxShadow: theme.shadow.toast,
-                                zIndex: 2000,
-                                pointerEvents: "none",
-                            })}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            <div
-                                style={{
-                                    color: "#000000",
-                                    fontSize: 14,
-                                    fontFamily: pretendardFontFamily,
-                                    fontWeight: 400,
-                                    textAlign: "center",
-                                }}
-                            >
-                                {copyMessage}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </div>
+
+            {/* 복사 메시지 - 최상위 컨테이너 기준 중앙 */}
+            <AnimatePresence>
+                {showCopyMessage && (
+                    <motion.div
+                        style={mergeStyles({
+                            position: "absolute",
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            width: "80%",
+                            maxWidth: 260,
+                            minHeight: 44,
+                            padding: "10px 12px",
+                            background: theme.color.surface,
+                            borderRadius: 8,
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            boxShadow: theme.shadow.toast,
+                            zIndex: 2000,
+                            pointerEvents: "none",
+                        })}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <div
+                            style={{
+                                color: "#000000",
+                                fontSize: 14,
+                                fontFamily: pretendardFontFamily,
+                                fontWeight: 400,
+                                textAlign: "center",
+                            }}
+                        >
+                            {copyMessage}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
