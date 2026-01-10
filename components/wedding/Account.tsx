@@ -1,8 +1,31 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { PROXY_BASE_URL } from '@/lib/supabase'
+import { getPageSettingsByPageId } from "@/lib/supabase"
+
+// 로컬 UI 토큰/프리미티브 (Framer 친화)
+const theme = {
+    color: {
+        bg: "#ffffff",
+        text: "#111827",
+        sub: "#374151",
+        muted: "#6b7280",
+        border: "#e5e7eb",
+        overlay: "rgba(0,0,0,0.04)",
+        surface: "#ffffff",
+    },
+    shadow: {
+        toast: "0 10px 30px rgba(0,0,0,0.12)",
+    },
+} as const
+
+function mergeStyles(
+    ...styles: Array<React.CSSProperties | undefined>
+): React.CSSProperties {
+    return Object.assign({}, ...styles)
+}
 
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
 const FONT_STACKS = {
@@ -82,6 +105,7 @@ interface AccountBtnProps {
 
 type ViewState = "closed" | "open"
 type SideType = "groom" | "bride"
+const DEFAULT_ACCOUNT_TEXT = `참석이 어려우신 분들을 위해 기재했습니다.\n너그러운 마음으로 양해 부탁드립니다.`
 
 /**
  * @framerDisableUnlink
@@ -100,6 +124,8 @@ export default function AccountBtn(props: AccountBtnProps) {
     const [error, setError] = useState("")
     const [copyMessage, setCopyMessage] = useState("")
     const [showCopyMessage, setShowCopyMessage] = useState(false)
+    const [accountText, setAccountText] =
+        useState<string>(DEFAULT_ACCOUNT_TEXT)
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
@@ -110,7 +136,7 @@ export default function AccountBtn(props: AccountBtnProps) {
     const isDevelopment = process.env.NODE_ENV === 'development'
 
     // 계좌 정보 로드
-    const loadAccountInfo = async () => {
+    const loadAccountInfo = useCallback(async () => {
         if (isDevelopment) {
             // 로컬 개발용 더미 데이터
             const dummyAccountInfo: AccountInfo = {
@@ -164,12 +190,28 @@ export default function AccountBtn(props: AccountBtnProps) {
         } finally {
             setLoading(false)
         }
-    }
+    }, [isDevelopment, pageId])
+
+    // page_settings의 안내 텍스트 로드
+    const loadAccountText = useCallback(async () => {
+        try {
+            const settings = await getPageSettingsByPageId(pageId)
+            const fetched = settings?.account_text
+            if (typeof fetched === "string" && fetched.trim()) {
+                setAccountText(fetched)
+            } else {
+                setAccountText(DEFAULT_ACCOUNT_TEXT)
+            }
+        } catch {
+            setAccountText(DEFAULT_ACCOUNT_TEXT)
+        }
+    }, [pageId])
 
     // 초기 로드
     useEffect(() => {
         loadAccountInfo()
-    }, [pageId])
+        loadAccountText()
+    }, [pageId, loadAccountInfo, loadAccountText])
 
     // 클립보드 복사 함수
     const copyToClipboard = async (text: string, type: string) => {
@@ -355,7 +397,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                             whiteSpace: "pre-wrap",
                         }}
                     >
-                        {`참석이 어려우신 분들을 위해 기재했습니다.\n너그러운 마음으로 양해 부탁드립니다.`}
+                        {accountText}
                     </div>
                 </motion.div>
                 {/* 계좌 버튼 컨테이너 (가로 88% 고정 비율) */}
@@ -410,23 +452,24 @@ export default function AccountBtn(props: AccountBtnProps) {
                 <AnimatePresence>
                     {showCopyMessage && (
                         <motion.div
-                            style={{
-                                position: "absolute",
+                            style={mergeStyles({
+                                position: "fixed",
                                 top: "50%",
-                                left: "25%",
+                                left: "50%",
                                 transform: "translate(-50%, -50%)",
                                 width: "80%",
-                                maxWidth: 200,
-                                height: 40,
-                                background: "#FFFFFF",
-                                borderRadius: 5,
+                                maxWidth: 260,
+                                minHeight: 44,
+                                padding: "10px 12px",
+                                background: theme.color.surface,
+                                borderRadius: 8,
                                 display: "flex",
                                 justifyContent: "center",
                                 alignItems: "center",
-                                boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)",
-                                zIndex: 1000,
+                                boxShadow: theme.shadow.toast,
+                                zIndex: 2000,
                                 pointerEvents: "none",
-                            }}
+                            })}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}

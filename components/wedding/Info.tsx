@@ -612,7 +612,7 @@ function Info({
 
     // ✅ maxCardHeight = "모든 카드 실측값 중 최대"
     const maxCardHeight = useMemo(() => {
-        const MIN_HEIGHT = 280
+        const MIN_HEIGHT = 200
         const heights = Object.values(cardHeights)
         if (heights.length === 0) return MIN_HEIGHT
         return Math.max(MIN_HEIGHT, ...heights)
