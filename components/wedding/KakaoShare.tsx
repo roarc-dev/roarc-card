@@ -332,42 +332,33 @@ export default function KakaoShare(props: KakaoShareProps) {
             imageUrl = photoUrl
         }
 
-        // 폴백: 현재 URL이 없으면 설정값으로 전체 URL 생성
-        const fallbackUrl = (() => {
-            // 기본 도메인 (현재 접속 도메인 사용, 없으면 mcard.roarc.kr)
-            const defaultDomain = typeof window !== 'undefined' 
-                ? window.location.host 
-                : 'mcard.roarc.kr'
-            
+        // 폴백: 현재 URL이 없으면 설정값으로 경로 생성
+        const fallbackPath = (() => {
             const formattedDate = formatWeddingDate(settings.wedding_date)
             // settings.user_url을 최우선으로 사용
             const publicSlug = (settings.user_url || userUrl || pageId).trim()
-            const path = formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
-            
-            const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:'
-            return `${protocol}//${defaultDomain}/${path}`
+            return formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
         })()
         
-        const weddingUrl = currentUrl || fallbackUrl
+        // 현재 URL에서 경로만 추출 (도메인 제거)
+        const currentPath = currentUrl.replace(/^https?:\/\/[^/]+\//, '')
         
-        // 카카오 템플릿이 도메인을 하드코딩하고 있을 경우를 대비한 경로만 추출
-        const pathOnly = weddingUrl.replace(/^https?:\/\/[^/]+\//, '')
+        // 카카오 템플릿에 도메인이 이미 설정되어 있으므로 경로만 전달
+        const weddingPath = currentPath || fallbackPath
 
         const args = {
             WEDDING_IMAGE: imageUrl,
             CUSTOM_TITLE: customTitle,
             CUSTOM_BODY: customBody,
-            WEDDING_URL: weddingUrl, // 전체 URL (프로토콜 포함)
-            WEDDING_PATH: pathOnly, // 경로만 (템플릿이 도메인 하드코딩한 경우 대비)
+            WEDDING_URL: weddingPath, // 경로만 전달 (도메인은 템플릿에 설정됨)
         }
         console.log('[KakaoShare] templateArgs:', args, {
             windowHost: typeof window !== 'undefined' ? window.location.host : 'SSR',
             windowPathname: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
-            windowProtocol: typeof window !== 'undefined' ? window.location.protocol : 'SSR',
             currentUrl,
-            fallbackUrl,
-            weddingUrl_full: weddingUrl,
-            weddingPath_only: pathOnly,
+            currentPath,
+            fallbackPath,
+            weddingPath_final: weddingPath,
             userUrlFromSettings: settings.user_url,
             userUrlFromProps: userUrl,
             pageId,
