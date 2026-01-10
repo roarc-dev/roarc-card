@@ -109,13 +109,30 @@ async function fetchInviteData(pageId: string): Promise<InviteData | null> {
     return null
 }
 
+// 날짜 문자열에서 KST 기준 연/월/일을 추출하는 헬퍼 함수
+function extractKSTDateParts(dateString: string): {
+    year: number
+    month: number
+    day: number
+} {
+    const parts = dateString.split('-')
+    return {
+        year: parseInt(parts[0], 10),
+        month: parseInt(parts[1], 10) - 1, // 0-based month
+        day: parseInt(parts[2], 10),
+    }
+}
+
 function formatWeddingDate(weddingDate?: string): string {
     if (!weddingDate) return ''
     try {
-        const date = new Date(weddingDate)
-        const year = date.getFullYear().toString().slice(-2)
-        const month = (date.getMonth() + 1).toString().padStart(2, '0')
-        const day = date.getDate().toString().padStart(2, '0')
+        // 타임존 안전한 파싱
+        const parts = extractKSTDateParts(weddingDate)
+        const date = new Date(Date.UTC(parts.year, parts.month, parts.day))
+        
+        const year = date.getUTCFullYear().toString().slice(-2)
+        const month = (date.getUTCMonth() + 1).toString().padStart(2, '0')
+        const day = date.getUTCDate().toString().padStart(2, '0')
         return `${year}${month}${day}`
     } catch {
         return ''
@@ -128,10 +145,13 @@ function formatWeddingDateTime(settings: PageSettings): string {
     if (!wedding_date) return '결혼식 정보를 확인해 주세요'
 
     try {
-        const date = new Date(wedding_date)
-        const year = date.getFullYear()
-        const month = date.getMonth() + 1
-        const day = date.getDate()
+        // 타임존 안전한 파싱
+        const parts = extractKSTDateParts(wedding_date)
+        const date = new Date(Date.UTC(parts.year, parts.month, parts.day))
+        
+        const year = date.getUTCFullYear()
+        const month = date.getUTCMonth() + 1
+        const day = date.getUTCDate()
 
         const dayNames = [
             '일요일',
@@ -142,7 +162,7 @@ function formatWeddingDateTime(settings: PageSettings): string {
             '금요일',
             '토요일',
         ]
-        const dayOfWeek = dayNames[date.getDay()]
+        const dayOfWeek = dayNames[date.getUTCDay()]
 
         const hour = wedding_hour ? parseInt(wedding_hour) : null
         const minute = wedding_minute ? parseInt(wedding_minute) : null
@@ -288,17 +308,33 @@ export default function KakaoShare(props: KakaoShareProps) {
             imageUrl = photoUrl
         }
 
-        const formattedDate = formatWeddingDate(settings.wedding_date)
-        const publicSlug = (userUrl || pageId).trim()
-        const pathWithDate = formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
+        // 현재 접속한 페이지의 URL을 사용 (안전한 폴백 포함)
+        let currentPath = ''
+        if (typeof window !== 'undefined') {
+            // pathname에서 맨 앞 '/' 제거
+            currentPath = window.location.pathname.replace(/^\//, '')
+        }
+        
+        // 폴백: 현재 경로가 없으면 설정값으로 URL 생성
+        const fallbackPath = (() => {
+            const formattedDate = formatWeddingDate(settings.wedding_date)
+            const publicSlug = (userUrl || pageId).trim()
+            return formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
+        })()
+        
+        const weddingUrl = currentPath || fallbackPath
 
         const args = {
             WEDDING_IMAGE: imageUrl,
             CUSTOM_TITLE: customTitle,
             CUSTOM_BODY: customBody,
-            WEDDING_URL: pathWithDate,
+            WEDDING_URL: weddingUrl,
         }
-        console.log('[KakaoShare] templateArgs:', args)
+        console.log('[KakaoShare] templateArgs:', args, {
+            currentPath,
+            fallbackPath,
+            usedUrl: weddingUrl,
+        })
         return args
     }, [settings, inviteData, pageId, userUrl])
 
