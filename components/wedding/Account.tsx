@@ -126,6 +126,8 @@ export default function AccountBtn(props: AccountBtnProps) {
     const [showCopyMessage, setShowCopyMessage] = useState(false)
     const [accountText, setAccountText] =
         useState<string>(DEFAULT_ACCOUNT_TEXT)
+    const [isAccountTextDisabled, setIsAccountTextDisabled] =
+        useState<boolean>(false)
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
@@ -197,12 +199,23 @@ export default function AccountBtn(props: AccountBtnProps) {
         try {
             const settings = await getPageSettingsByPageId(pageId)
             const fetched = settings?.account_text
-            if (typeof fetched === "string" && fetched.trim()) {
+            if (typeof fetched === "string" && fetched === "off") {
+                // "off"인 경우 텍스트 영역을 렌더링하지 않음
+                setIsAccountTextDisabled(true)
+                setAccountText("")
+            } else if (
+                typeof fetched === "string" &&
+                fetched.trim() &&
+                fetched !== "off"
+            ) {
+                setIsAccountTextDisabled(false)
                 setAccountText(fetched)
             } else {
+                setIsAccountTextDisabled(false)
                 setAccountText(DEFAULT_ACCOUNT_TEXT)
             }
         } catch {
+            setIsAccountTextDisabled(false)
             setAccountText(DEFAULT_ACCOUNT_TEXT)
         }
     }, [pageId])
@@ -355,51 +368,57 @@ export default function AccountBtn(props: AccountBtnProps) {
                     ...style,
                 }}
             >
-                {/* 안내 텍스트 박스 */}
-                <motion.div
-                    style={{
-                        width: "100%",
-                        paddingBottom: 30,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 20,
-                        boxSizing: "border-box",
-                        alignItems: "center",
-                    }}
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, ease: "easeOut", delay: 0 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                >
-                    <div
+                {/* 안내 텍스트 박스 - account_text가 "off"가 아닐 때만 렌더링 */}
+                {!isAccountTextDisabled && (
+                    <motion.div
                         style={{
                             width: "100%",
-                            height: 20,
-                            fontFamily: pretendardFontFamily,
-                            fontWeight: 600,
-                            fontSize: 22,
-                            lineHeight: "0.7em",
-                            color: "#000000",
-                            textAlign: "center",
+                            paddingBottom: 30,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 20,
+                            boxSizing: "border-box",
+                            alignItems: "center",
                         }}
-                    >
-                        마음 전하는 곳
-                    </div>
-                    <div
-                        style={{
-                            width: "100%",
-                            fontFamily: pretendardFontFamily,
-                            fontWeight: 400,
-                            fontSize: 15,
-                            lineHeight: "1.8em",
-                            color: "#8c8c8c",
-                            textAlign: "center",
-                            whiteSpace: "pre-wrap",
+                        initial={{ opacity: 0, y: 16 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{
+                            duration: 0.5,
+                            ease: "easeOut",
+                            delay: 0,
                         }}
+                        viewport={{ once: true, amount: 0.3 }}
                     >
-                        {accountText}
-                    </div>
-                </motion.div>
+                        <div
+                            style={{
+                                width: "100%",
+                                height: 20,
+                                fontFamily: pretendardFontFamily,
+                                fontWeight: 600,
+                                fontSize: 22,
+                                lineHeight: "0.7em",
+                                color: "#000000",
+                                textAlign: "center",
+                            }}
+                        >
+                            마음 전하는 곳
+                        </div>
+                        <div
+                            style={{
+                                width: "100%",
+                                fontFamily: pretendardFontFamily,
+                                fontWeight: 400,
+                                fontSize: 15,
+                                lineHeight: "1.8em",
+                                color: "#8c8c8c",
+                                textAlign: "center",
+                                whiteSpace: "pre-wrap",
+                            }}
+                        >
+                            {accountText}
+                        </div>
+                    </motion.div>
+                )}
                 {/* 계좌 버튼 컨테이너 (가로 88% 고정 비율) */}
                 <motion.div
                     style={{
