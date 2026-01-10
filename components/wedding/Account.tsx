@@ -368,6 +368,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                 width: "100%",
                 display: "flex",
                 justifyContent: "center",
+                alignItems: "center",
                 backgroundColor: "#FAFAFA",
                 position: "relative",
             }}
@@ -377,6 +378,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                     width: "100%",
                     display: "flex",
                     flexDirection: "column",
+                    alignItems: "center",
                     gap: 10,
                     ...style,
                 }}
@@ -479,17 +481,14 @@ export default function AccountBtn(props: AccountBtnProps) {
                         />
                     </motion.div>
                 </motion.div>
-            </div>
+            
 
             {/* 복사 메시지 - 최상위 컨테이너 기준 중앙 */}
             <AnimatePresence>
                 {showCopyMessage && (
                     <motion.div
                         style={mergeStyles({
-                            position: "absolute",
-                            top: "50%",
-                            left: "50%",
-                            transform: "translate(-50%, -50%)",
+                            position: "relative",
                             width: "80%",
                             maxWidth: 260,
                             minHeight: 44,
@@ -522,6 +521,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                     </motion.div>
                 )}
             </AnimatePresence>
+            </div>
         </div>
     )
 }
