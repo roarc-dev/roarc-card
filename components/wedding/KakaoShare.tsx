@@ -375,7 +375,21 @@ export default function KakaoShare(props: KakaoShareProps) {
         return args
     }, [settings, inviteData, pageId, userUrl, currentUrl])
 
-    const templateId = "124666"
+    // 도메인에 따라 템플릿 ID 선택
+    const templateId = useMemo(() => {
+        if (typeof window === 'undefined') return "124666" // SSR 기본값
+        
+        const host = window.location.host
+        // card.roarc.kr -> 127819
+        // mcard.roarc.kr -> 124666
+        if (host.includes('card.roarc.kr')) {
+            console.log('[KakaoShare] card.roarc.kr 도메인 감지 -> 템플릿 ID 127819 사용')
+            return "127819"
+        } else {
+            console.log('[KakaoShare] mcard.roarc.kr 도메인 감지 -> 템플릿 ID 124666 사용')
+            return "124666"
+        }
+    }, [])
 
     const isReadyToShare = useMemo(() => {
         const ready = !!(
