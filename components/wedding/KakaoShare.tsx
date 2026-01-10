@@ -18,6 +18,7 @@ const FONT_STACKS = {
 
 interface PageSettings {
     page_url?: string
+    user_url?: string
     groom_name_kr?: string
     bride_name_kr?: string
     kko_img?: string
@@ -197,6 +198,7 @@ export default function KakaoShare(props: KakaoShareProps) {
     const [settings, setSettings] = useState<PageSettings | null>(null)
     const [inviteData, setInviteData] = useState<InviteData | null>(null)
     const [kakaoReady, setKakaoReady] = useState(false)
+    const [currentUrl, setCurrentUrl] = useState('')
 
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
 
@@ -283,6 +285,16 @@ export default function KakaoShare(props: KakaoShareProps) {
         return () => clearInterval(interval)
     }, [])
 
+    // 현재 접속 URL 저장 (클라이언트 사이드에서만)
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            // 전체 URL: host + pathname (도메인 포함)
+            const fullUrl = window.location.host + window.location.pathname
+            setCurrentUrl(fullUrl.replace(/^\//, ''))
+            console.log('[KakaoShare] 현재 URL 설정:', fullUrl)
+        }
+    }, [])
+
     const templateArgs = useMemo(() => {
         if (!settings) return null
 
@@ -291,8 +303,19 @@ export default function KakaoShare(props: KakaoShareProps) {
         const brideName =
             inviteData?.brideName?.trim() || settings.bride_name_kr?.trim() || ''
 
-        const customTitle =
-            settings.kko_title?.trim() || `${groomName} ♥ ${brideName} 결혼합니다`
+        // 제목: 이름이 하나도 없으면 더 나은 기본값
+        const customTitle = (() => {
+            const title = settings.kko_title?.trim()
+            if (title) return title
+            
+            const groom = groomName.trim()
+            const bride = brideName.trim()
+            
+            if (groom && bride) return `${groom} ♥ ${bride} 결혼합니다`
+            if (groom) return `${groom}의 결혼식에 초대합니다`
+            if (bride) return `${bride}의 결혼식에 초대합니다`
+            return '결혼식에 초대합니다' // 이름이 하나도 없을 때
+        })()
 
         const customBody =
             settings.kko_date?.trim() || formatWeddingDateTime(settings)
@@ -308,21 +331,22 @@ export default function KakaoShare(props: KakaoShareProps) {
             imageUrl = photoUrl
         }
 
-        // 현재 접속한 페이지의 URL을 사용 (안전한 폴백 포함)
-        let currentPath = ''
-        if (typeof window !== 'undefined') {
-            // pathname에서 맨 앞 '/' 제거
-            currentPath = window.location.pathname.replace(/^\//, '')
-        }
-        
-        // 폴백: 현재 경로가 없으면 설정값으로 URL 생성
-        const fallbackPath = (() => {
+        // 폴백: 현재 URL이 없으면 설정값으로 전체 URL 생성
+        const fallbackUrl = (() => {
+            // 기본 도메인 (현재 접속 도메인 사용, 없으면 mcard.roarc.kr)
+            const defaultDomain = typeof window !== 'undefined' 
+                ? window.location.host 
+                : 'mcard.roarc.kr'
+            
             const formattedDate = formatWeddingDate(settings.wedding_date)
-            const publicSlug = (userUrl || pageId).trim()
-            return formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
+            // settings.user_url을 최우선으로 사용
+            const publicSlug = (settings.user_url || userUrl || pageId).trim()
+            const path = formattedDate ? `${formattedDate}/${publicSlug}` : publicSlug
+            
+            return `${defaultDomain}/${path}`
         })()
         
-        const weddingUrl = currentPath || fallbackPath
+        const weddingUrl = currentUrl || fallbackUrl
 
         const args = {
             WEDDING_IMAGE: imageUrl,
@@ -331,12 +355,17 @@ export default function KakaoShare(props: KakaoShareProps) {
             WEDDING_URL: weddingUrl,
         }
         console.log('[KakaoShare] templateArgs:', args, {
-            currentPath,
-            fallbackPath,
+            windowHost: typeof window !== 'undefined' ? window.location.host : 'SSR',
+            windowPathname: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
+            currentUrl,
+            fallbackUrl,
             usedUrl: weddingUrl,
+            userUrlFromSettings: settings.user_url,
+            userUrlFromProps: userUrl,
+            pageId,
         })
         return args
-    }, [settings, inviteData, pageId, userUrl])
+    }, [settings, inviteData, pageId, userUrl, currentUrl])
 
     const templateId = "124666"
 
