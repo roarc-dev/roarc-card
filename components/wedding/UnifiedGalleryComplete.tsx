@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 // @ts-ignore
 import typography from "@/lib/typography.js"
 import { PROXY_BASE_URL } from '@/lib/supabase'
@@ -298,7 +299,6 @@ export default function UnifiedGalleryComplete({
     // 스크롤 컨테이너 ref
     const scrollContainerRef = useRef<HTMLDivElement>(null)
     const thumbnailScrollRef = useRef<HTMLDivElement>(null)
-    const mainImageContainerRef = useRef<HTMLDivElement>(null)
 
     // 로컬 개발에서는 더미 데이터 사용
     const isDevelopment = process.env.NODE_ENV === 'development'
@@ -371,55 +371,7 @@ export default function UnifiedGalleryComplete({
         }
     }, [pageId, isDevelopment])
 
-    // gallery_zoom === "on" 인 경우: 메인 이미지 영역에서만 document의 핀치줌 차단 리스너를 우회
-    // (document에 등록된 touchstart/gesture* preventDefault가 버블링 단계에서 실행되지 않게 stopPropagation)
-    useEffect(() => {
-        if (!galleryZoomEnabled) return
-
-        const container = mainImageContainerRef.current
-        if (!container) return
-
-        const onTouchStart = (e: TouchEvent) => {
-            // 멀티터치(핀치) 시작 시에만 document 리스너로 버블링 차단
-            if (e.touches && e.touches.length > 1) {
-                e.stopPropagation()
-            }
-        }
-
-        const onGesture = (e: Event) => {
-            // iOS Safari gesturestart/change/end 차단 우회
-            e.stopPropagation()
-        }
-
-        container.addEventListener("touchstart", onTouchStart, { passive: true })
-        container.addEventListener("gesturestart", onGesture)
-        container.addEventListener("gesturechange", onGesture)
-        container.addEventListener("gestureend", onGesture)
-
-        return () => {
-            container.removeEventListener(
-                "touchstart",
-                onTouchStart as EventListener
-            )
-            container.removeEventListener("gesturestart", onGesture as EventListener)
-            container.removeEventListener(
-                "gesturechange",
-                onGesture as EventListener
-            )
-            container.removeEventListener("gestureend", onGesture as EventListener)
-        }
-    }, [galleryZoomEnabled])
-
     const hasImages = images && images.length > 0
-
-    // 슬라이드 갤러리용 확장 이미지 (무한 스크롤)
-    const slideImages = useMemo(() => {
-        if (galleryType !== "slide" || images.length < 2) {
-            return images
-        }
-        // [마지막, ...원본, 첫번째] 형태로 복제
-        return [images[images.length - 1], ...images, images[0]]
-    }, [images, galleryType])
 
     // 애니메이션 설정
     const animationVariants = {
@@ -528,17 +480,6 @@ export default function UnifiedGalleryComplete({
     const SLIDE_GAP = 10 // 이미지 간격
     const SLIDE_TOTAL = SLIDE_WIDTH + SLIDE_GAP // 슬라이드 하나의 전체 너비
 
-    // 이미지 로드 후 초기 인덱스 설정 (무한 스크롤용)
-    useEffect(() => {
-        if (galleryType === "slide" && images.length >= 2) {
-            setSelectedIndex(1) // 복제 이미지 다음부터 시작
-            setSlideOffset(-SLIDE_TOTAL) // 첫 번째 실제 이미지 위치
-        } else if (galleryType === "slide") {
-            setSelectedIndex(0)
-            setSlideOffset(0)
-        }
-    }, [images.length, galleryType, SLIDE_TOTAL])
-
     // 썸네일 스크롤을 가운데로 위치시키는 함수
     const scrollThumbnailToCenter = useCallback((index: number) => {
         if (thumbnailScrollRef.current && galleryType === "thumbnail") {
@@ -617,27 +558,20 @@ export default function UnifiedGalleryComplete({
             const diff = currentX - slideStartX.current
             const newOffset = slideStartOffset.current + diff
 
-            const isInfinite = galleryType === "slide" && images.length >= 2
+            // 범위 제한 (첫 번째 이미지 이전, 마지막 이미지 이후로 제한)
+            const maxOffset = 0
+            const minOffset = -((images.length - 1) * SLIDE_TOTAL)
 
-            if (!isInfinite) {
-                // 범위 제한 (첫 번째 이미지 이전, 마지막 이미지 이후로 제한)
-                const maxOffset = 0
-                const minOffset = -((images.length - 1) * SLIDE_TOTAL)
-
-                // 경계에서 저항감 추가 (elastic effect)
-                if (newOffset > maxOffset) {
-                    setSlideOffset(newOffset * 0.3) // 저항감
-                } else if (newOffset < minOffset) {
-                    setSlideOffset(minOffset + (newOffset - minOffset) * 0.3)
-                } else {
-                    setSlideOffset(newOffset)
-                }
+            // 경계에서 저항감 추가 (elastic effect)
+            if (newOffset > maxOffset) {
+                setSlideOffset(newOffset * 0.3) // 저항감
+            } else if (newOffset < minOffset) {
+                setSlideOffset(minOffset + (newOffset - minOffset) * 0.3)
             } else {
-                // 무한 스크롤: 경계 제한 없음
                 setSlideOffset(newOffset)
             }
         },
-        [images.length, isDragging, slideOffset, SLIDE_TOTAL, galleryType]
+        [images.length, isDragging, slideOffset, SLIDE_TOTAL]
     )
 
     const handleSlideTouchEnd = useCallback(() => {
@@ -660,19 +594,13 @@ export default function UnifiedGalleryComplete({
             dragDistance < -MIN_SWIPE_DISTANCE * 2
         ) {
             // 왼쪽으로 드래그 → 다음 장
-            targetIndex = selectedIndex + 1
+            targetIndex = Math.min(selectedIndex + 1, images.length - 1)
         } else if (
             dragDistance > SLIDE_TOTAL * SNAP_THRESHOLD ||
             dragDistance > MIN_SWIPE_DISTANCE * 2
         ) {
             // 오른쪽으로 드래그 → 이전 장
-            targetIndex = selectedIndex - 1
-        }
-
-        const isInfinite = galleryType === "slide" && images.length >= 2
-
-        if (!isInfinite) {
-            targetIndex = Math.max(0, Math.min(targetIndex, images.length - 1))
+            targetIndex = Math.max(selectedIndex - 1, 0)
         }
 
         // 해당 인덱스로 스냅
@@ -680,12 +608,15 @@ export default function UnifiedGalleryComplete({
         setSlideOffset(-targetIndex * SLIDE_TOTAL)
 
         slideStartX.current = null
-    }, [SLIDE_TOTAL, images.length, selectedIndex, slideOffset, galleryType])
+    }, [SLIDE_TOTAL, images.length, selectedIndex, slideOffset])
 
     // 다음/이전 이미지로 이동
     const goToNext = useCallback(() => {
         if (galleryType === "slide") {
-            const nextIndex = selectedIndex + 1
+            const nextIndex =
+                selectedIndex < images.length - 1
+                    ? selectedIndex + 1
+                    : selectedIndex
             setSelectedIndex(nextIndex)
             setSlideOffset(-nextIndex * SLIDE_TOTAL)
         } else {
@@ -697,7 +628,8 @@ export default function UnifiedGalleryComplete({
 
     const goToPrevious = useCallback(() => {
         if (galleryType === "slide") {
-            const prevIndex = selectedIndex - 1
+            const prevIndex =
+                selectedIndex > 0 ? selectedIndex - 1 : selectedIndex
             setSelectedIndex(prevIndex)
             setSlideOffset(-prevIndex * SLIDE_TOTAL)
         } else {
@@ -728,28 +660,6 @@ export default function UnifiedGalleryComplete({
             setSlideOffset(-selectedIndex * SLIDE_TOTAL)
         }
     }, [selectedIndex, galleryType, isDragging, SLIDE_TOTAL])
-
-    // 무한 스크롤: 경계 이미지 도달 시 위치 재설정
-    useEffect(() => {
-        if (galleryType !== "slide" || images.length < 2 || isDragging) return
-
-        const totalSlides = images.length + 2 // 복제 이미지 포함
-
-        // 마지막 복제 이미지(인덱스 images.length + 1)에 도달
-        if (selectedIndex >= totalSlides - 1) {
-            setTimeout(() => {
-                setSelectedIndex(1) // 첫 번째 실제 이미지로
-                setSlideOffset(-SLIDE_TOTAL)
-            }, 300) // transition 완료 후
-        }
-        // 첫 번째 복제 이미지(인덱스 0)에 도달
-        else if (selectedIndex <= 0) {
-            setTimeout(() => {
-                setSelectedIndex(images.length) // 마지막 실제 이미지로
-                setSlideOffset(-images.length * SLIDE_TOTAL)
-            }, 300)
-        }
-    }, [selectedIndex, galleryType, images.length, isDragging, SLIDE_TOTAL])
 
     // 썸네일형 갤러리에서 selectedIndex 변경 시 썸네일 가운데 스크롤
     useEffect(() => {
@@ -826,16 +736,11 @@ export default function UnifiedGalleryComplete({
                         GALLERY
                     </motion.div>
                     <motion.div
-                        ref={mainImageContainerRef}
-                        data-allow-zoom={galleryZoomEnabled ? "true" : undefined}
                         style={{
                             width: "100%",
                             height: "529px",
                             position: "relative",
                             overflow: "hidden",
-                            touchAction: galleryZoomEnabled
-                                ? "pan-y pinch-zoom"
-                                : "pan-y", // 세로 스크롤만 브라우저에 위임
                         }}
                         initial={{ opacity: 0, y: 50 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -845,9 +750,9 @@ export default function UnifiedGalleryComplete({
                             delay: 0.1,
                         }}
                         viewport={{ once: true }}
-                        onTouchStart={handleSlideTouchStart}
-                        onTouchMove={handleSlideTouchMove}
-                        onTouchEnd={handleSlideTouchEnd}
+                        onTouchStart={!galleryZoomEnabled ? handleSlideTouchStart : undefined}
+                        onTouchMove={!galleryZoomEnabled ? handleSlideTouchMove : undefined}
+                        onTouchEnd={!galleryZoomEnabled ? handleSlideTouchEnd : undefined}
                     >
                         <div
                             ref={scrollContainerRef}
@@ -862,9 +767,9 @@ export default function UnifiedGalleryComplete({
                                 willChange: "transform",
                             }}
                         >
-                            {slideImages.map((image, index) => (
+                            {images.map((image, index) => (
                                 <div
-                                    key={`${image.id}-${index}`}
+                                    key={image.id || String(index)}
                                     style={{
                                         flexShrink: 0,
                                         width: `${SLIDE_WIDTH}px`,
@@ -877,28 +782,73 @@ export default function UnifiedGalleryComplete({
                                         position: "relative",
                                     }}
                                 >
-                                    <img
-                                        src={image.src}
-                                        alt={image.alt}
-                                        draggable={false}
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                            objectPosition: "center",
-                                            userSelect: "none",
-                                            pointerEvents: "none",
-                                            display: "block",
-                                        }}
-                                        onLoad={handleImageLoad}
-                                        onError={(e) => {
-                                            try {
-                                                ;(
-                                                    e.target as HTMLImageElement
-                                                ).style.display = "none"
-                                            } catch (_) {}
-                                        }}
-                                    />
+                                    {galleryZoomEnabled ? (
+                                        <TransformWrapper
+                                            minScale={1}
+                                            maxScale={3}
+                                            initialScale={1}
+                                            centerOnInit={true}
+                                            wheel={{ disabled: true }}
+                                            doubleClick={{ disabled: false }}
+                                            panning={{ disabled: false }}
+                                        >
+                                            <TransformComponent
+                                                wrapperStyle={{
+                                                    width: "100%",
+                                                    height: "100%",
+                                                }}
+                                                contentStyle={{
+                                                    width: "100%",
+                                                    height: "100%",
+                                                }}
+                                            >
+                                                <img
+                                                    src={image.src}
+                                                    alt={image.alt}
+                                                    draggable={false}
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        objectFit: "cover",
+                                                        objectPosition: "center",
+                                                        userSelect: "none",
+                                                        display: "block",
+                                                    }}
+                                                    onLoad={handleImageLoad}
+                                                    onError={(e) => {
+                                                        try {
+                                                            ;(
+                                                                e.target as HTMLImageElement
+                                                            ).style.display = "none"
+                                                        } catch (_) {}
+                                                    }}
+                                                />
+                                            </TransformComponent>
+                                        </TransformWrapper>
+                                    ) : (
+                                        <img
+                                            src={image.src}
+                                            alt={image.alt}
+                                            draggable={false}
+                                            style={{
+                                                width: "100%",
+                                                height: "100%",
+                                                objectFit: "cover",
+                                                objectPosition: "center",
+                                                userSelect: "none",
+                                                pointerEvents: "none",
+                                                display: "block",
+                                            }}
+                                            onLoad={handleImageLoad}
+                                            onError={(e) => {
+                                                try {
+                                                    ;(
+                                                        e.target as HTMLImageElement
+                                                    ).style.display = "none"
+                                                } catch (_) {}
+                                            }}
+                                        />
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -1023,8 +973,6 @@ export default function UnifiedGalleryComplete({
                     GALLERY
                 </motion.div>
                 <motion.div
-                    ref={mainImageContainerRef}
-                    data-allow-zoom={galleryZoomEnabled ? "true" : undefined}
                     style={{
                         width: "100%",
                         height: "460px", // 고정 높이
@@ -1034,51 +982,110 @@ export default function UnifiedGalleryComplete({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        touchAction: galleryZoomEnabled
-                            ? "pan-y pinch-zoom"
-                            : "pan-y", // 세로 스크롤만 브라우저에 위임
                     }}
                     initial={{ opacity: 0, y: 50 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
                     viewport={{ once: true }}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
+                    onTouchStart={!galleryZoomEnabled ? handleTouchStart : undefined}
+                    onTouchMove={!galleryZoomEnabled ? handleTouchMove : undefined}
+                    onTouchEnd={!galleryZoomEnabled ? handleTouchEnd : undefined}
                 >
                     <AnimatePresence mode="wait">
-                        <motion.img
+                        <motion.div
                             key={selectedIndex}
-                            src={
-                                images[selectedIndex] &&
-                                images[selectedIndex].src
-                            }
-                            alt={
-                                images[selectedIndex] &&
-                                images[selectedIndex].alt
-                            }
                             style={{
-                                maxWidth: "100%",
-                                maxHeight: "100%",
-                                objectFit: "contain", // 이미지 비율 유지하면서 컨테이너에 맞춤
-                                userSelect: "none",
-                                pointerEvents: "none",
-                                display: "block",
+                                width: "100%",
+                                height: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
                             }}
                             variants={animationVariants}
                             initial="initial"
                             animate="animate"
                             exit="exit"
                             transition={{ duration: 0.3 }}
-                            onLoad={handleImageLoad}
-                            onError={(e) => {
-                                try {
-                                    ;(
-                                        e.target as HTMLImageElement
-                                    ).style.display = "none"
-                                } catch (_) {}
-                            }}
-                        />
+                        >
+                            {galleryZoomEnabled ? (
+                                <TransformWrapper
+                                    minScale={1}
+                                    maxScale={3}
+                                    initialScale={1}
+                                    centerOnInit={true}
+                                    wheel={{ disabled: true }}
+                                    doubleClick={{ disabled: false }}
+                                    panning={{ disabled: false }}
+                                >
+                                    <TransformComponent
+                                        wrapperStyle={{
+                                            width: "100%",
+                                            height: "100%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                        contentStyle={{
+                                            width: "100%",
+                                            height: "100%",
+                                        }}
+                                    >
+                                        <img
+                                            src={
+                                                images[selectedIndex] &&
+                                                images[selectedIndex].src
+                                            }
+                                            alt={
+                                                images[selectedIndex] &&
+                                                images[selectedIndex].alt
+                                            }
+                                            style={{
+                                                maxWidth: "100%",
+                                                maxHeight: "100%",
+                                                objectFit: "contain",
+                                                userSelect: "none",
+                                                display: "block",
+                                            }}
+                                            onLoad={handleImageLoad}
+                                            onError={(e) => {
+                                                try {
+                                                    ;(
+                                                        e.target as HTMLImageElement
+                                                    ).style.display = "none"
+                                                } catch (_) {}
+                                            }}
+                                        />
+                                    </TransformComponent>
+                                </TransformWrapper>
+                            ) : (
+                                <img
+                                    src={
+                                        images[selectedIndex] &&
+                                        images[selectedIndex].src
+                                    }
+                                    alt={
+                                        images[selectedIndex] &&
+                                        images[selectedIndex].alt
+                                    }
+                                    style={{
+                                        maxWidth: "100%",
+                                        maxHeight: "100%",
+                                        objectFit: "contain",
+                                        userSelect: "none",
+                                        pointerEvents: "none",
+                                        display: "block",
+                                    }}
+                                    onLoad={handleImageLoad}
+                                    onError={(e) => {
+                                        try {
+                                            ;(
+                                                e.target as HTMLImageElement
+                                            ).style.display = "none"
+                                        } catch (_) {}
+                                    }}
+                                />
+                            )}
+                        </motion.div>
                     </AnimatePresence>
                 </motion.div>
 
