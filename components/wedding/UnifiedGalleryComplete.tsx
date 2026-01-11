@@ -3,12 +3,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { Swiper, SwiperSlide } from 'swiper/react'
-import { Zoom, Navigation, Pagination } from 'swiper/modules'
+import { Zoom, Navigation, Pagination, EffectFade } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
 import 'swiper/css'
 import 'swiper/css/zoom'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
+import 'swiper/css/effect-fade'
 // @ts-ignore
 import typography from "@/lib/typography.js"
 import { PROXY_BASE_URL } from '@/lib/supabase'
@@ -288,6 +289,10 @@ export default function UnifiedGalleryComplete({
     const rootRef = useRef<HTMLDivElement>(null)
     const mainSwiperRef = useRef<SwiperType | null>(null)
     const thumbnailSwiperRef = useRef<SwiperType | null>(null)
+    
+    // 썸네일 그라데이션 상태
+    const [showLeftGradient, setShowLeftGradient] = useState(false)
+    const [showRightGradient, setShowRightGradient] = useState(false)
 
     // 로컬 개발에서는 더미 데이터 사용
     const isDevelopment = process.env.NODE_ENV === 'development'
@@ -446,15 +451,62 @@ export default function UnifiedGalleryComplete({
             const isLandscape = img.naturalWidth > img.naturalHeight
 
             if (isLandscape) {
+                // 가로 사진: 가로를 100% 채우고 세로는 비율에 맞게 조정
                 img.style.objectFit = "contain"
                 img.style.objectPosition = "center"
             } else {
+                // 세로 사진: 세로를 100% 채우고 가로는 중앙 정렬
                 img.style.objectFit = "cover"
                 img.style.objectPosition = "center"
             }
         },
         []
     )
+
+    // 썸네일 스크롤 상태 체크 함수
+    const checkThumbnailScrollState = useCallback(() => {
+        if (!thumbnailSwiperRef.current) return
+
+        const swiper = thumbnailSwiperRef.current
+        const { isBeginning, isEnd } = swiper
+
+        // 좌측 그라데이션: 시작이 아니면 표시
+        setShowLeftGradient(!isBeginning)
+
+        // 우측 그라데이션: 끝이 아니면 표시
+        setShowRightGradient(!isEnd)
+    }, [])
+
+    // 썸네일 스크롤을 가운데로 위치시키는 함수
+    const scrollThumbnailToCenter = useCallback((index: number) => {
+        if (thumbnailSwiperRef.current && galleryType === "thumbnail") {
+            const swiper = thumbnailSwiperRef.current
+            swiper.slideTo(index, 300) // 300ms 애니메이션으로 이동
+            
+            // 그라데이션 상태 업데이트
+            setTimeout(() => {
+                checkThumbnailScrollState()
+            }, 350)
+        }
+    }, [galleryType, checkThumbnailScrollState])
+
+    // 썸네일 그라데이션 초기화 및 리사이즈 대응
+    useEffect(() => {
+        if (galleryType !== "thumbnail" || !thumbnailSwiperRef.current) return
+
+        const handleResize = () => {
+            setTimeout(checkThumbnailScrollState, 100)
+        }
+
+        window.addEventListener("resize", handleResize)
+        
+        // 초기 체크
+        setTimeout(checkThumbnailScrollState, 200)
+
+        return () => {
+            window.removeEventListener("resize", handleResize)
+        }
+    }, [galleryType, images.length, checkThumbnailScrollState])
 
     if (!hasImages && loading) {
         return (
@@ -506,7 +558,7 @@ export default function UnifiedGalleryComplete({
                                 toggle: true,
                             } : false}
                             spaceBetween={10}
-                            slidesPerView={1}
+                            slidesPerView={1.03}
                             centeredSlides={true}
                             onSwiper={(swiper) => {
                                 mainSwiperRef.current = swiper
@@ -541,6 +593,7 @@ export default function UnifiedGalleryComplete({
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             overflow: 'hidden',
+                                            borderRadius: '0px',
                                         }}
                                     >
                                         <img
@@ -674,7 +727,11 @@ export default function UnifiedGalleryComplete({
                     viewport={{ once: true }}
                 >
                     <Swiper
-                        modules={[Zoom]}
+                        modules={[Zoom, EffectFade]}
+                        effect="fade"
+                        fadeEffect={{
+                            crossFade: true
+                        }}
                         zoom={galleryZoomEnabled ? {
                             maxRatio: 3,
                             minRatio: 1,
@@ -687,10 +744,8 @@ export default function UnifiedGalleryComplete({
                         }}
                         onSlideChange={(swiper) => {
                             setSelectedIndex(swiper.activeIndex)
-                            // 썸네일 Swiper도 동기화
-                            if (thumbnailSwiperRef.current) {
-                                thumbnailSwiperRef.current.slideTo(swiper.activeIndex)
-                            }
+                            // 썸네일도 동기화
+                            scrollThumbnailToCenter(swiper.activeIndex)
                         }}
                         style={{
                             width: '100%',
@@ -759,6 +814,20 @@ export default function UnifiedGalleryComplete({
                         slideToClickedSlide={true}
                         onSwiper={(swiper) => {
                             thumbnailSwiperRef.current = swiper
+                            // 초기 그라데이션 상태 체크
+                            setTimeout(() => checkThumbnailScrollState(), 100)
+                        }}
+                        onSlideChange={() => {
+                            checkThumbnailScrollState()
+                        }}
+                        onReachBeginning={() => {
+                            setShowLeftGradient(false)
+                        }}
+                        onReachEnd={() => {
+                            setShowRightGradient(false)
+                        }}
+                        onFromEdge={() => {
+                            checkThumbnailScrollState()
                         }}
                         style={{
                             paddingLeft: "16px",
@@ -787,10 +856,7 @@ export default function UnifiedGalleryComplete({
                                         height: "100%",
                                         borderRadius: "8px",
                                         overflow: "hidden",
-                                        border: selectedIndex === idx
-                                            ? "2px solid #000"
-                                            : "2px solid transparent",
-                                        transition: "border-color 0.2s ease",
+                                        transition: "opacity 0.2s ease",
                                     }}
                                 >
                                     <img
@@ -818,6 +884,42 @@ export default function UnifiedGalleryComplete({
                             </SwiperSlide>
                         ))}
                     </Swiper>
+
+                    {/* 좌측 그라데이션 오버레이 - 동적으로 표시/숨김 */}
+                    {showLeftGradient && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                bottom: "20px",
+                                width: "30px",
+                                background:
+                                    "linear-gradient(to right, rgba(250,250,250,0.9), transparent)",
+                                pointerEvents: "none",
+                                zIndex: 1,
+                                transition: "opacity 0.2s ease",
+                            }}
+                        />
+                    )}
+
+                    {/* 우측 그라데이션 오버레이 - 동적으로 표시/숨김 */}
+                    {showRightGradient && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                right: 0,
+                                top: 0,
+                                bottom: "20px",
+                                width: "30px",
+                                background:
+                                    "linear-gradient(to left, rgba(250,250,250,0.9), transparent)",
+                                pointerEvents: "none",
+                                zIndex: 1,
+                                transition: "opacity 0.2s ease",
+                            }}
+                        />
+                    )}
                 </div>
             </>
         )

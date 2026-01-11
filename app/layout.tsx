@@ -5,6 +5,7 @@ import 'swiper/css'
 import 'swiper/css/zoom'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
+import 'swiper/css/effect-fade'
 
 // 기본 메타데이터
 export const metadata: Metadata = {
