@@ -12,9 +12,9 @@
     "@supabase/supabase-js": "^2.39.0",
     "framer-motion": "^10.16.4",
     "next": "^16.0.10",
-    "pinch-zoom-js": "^2.3.5",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "swiper": "^12.0.3"
   },
   "devDependencies": {
     "@types/node": "^20",

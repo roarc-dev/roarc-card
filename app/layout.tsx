@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import './globals.css'
+import 'swiper/css'
+import 'swiper/css/zoom'
+import 'swiper/css/navigation'
+import 'swiper/css/pagination'
 
 // 기본 메타데이터
 export const metadata: Metadata = {
@@ -57,9 +61,16 @@ export default function RootLayout({
 
             function preventZoom(e) {
               var target = e.target;
-              // data-allow-zoom="true" 영역에서는 줌 허용
+              // Swiper 줌 컨테이너 또는 data-allow-zoom="true" 영역에서는 줌 허용
               while (target && target !== document) {
                 if (target.getAttribute && target.getAttribute('data-allow-zoom') === 'true') {
+                  return;
+                }
+                if (target.className && (
+                    target.className.indexOf('swiper-zoom-container') !== -1 ||
+                    target.className.indexOf('swiper-slide') !== -1 ||
+                    target.className.indexOf('swiper') !== -1
+                )) {
                   return;
                 }
                 target = target.parentNode;
@@ -98,9 +109,16 @@ export default function RootLayout({
             document.addEventListener('touchend', function(event) {
               var target = event.target;
               
-              // data-allow-zoom 체크
+              // Swiper 또는 data-allow-zoom 체크
               while (target && target !== document) {
                 if (target.getAttribute && target.getAttribute('data-allow-zoom') === 'true') {
+                  return;
+                }
+                if (target.className && (
+                    target.className.indexOf('swiper-zoom-container') !== -1 ||
+                    target.className.indexOf('swiper-slide') !== -1 ||
+                    target.className.indexOf('swiper') !== -1
+                )) {
                   return;
                 }
                 if (target.getAttribute && (
