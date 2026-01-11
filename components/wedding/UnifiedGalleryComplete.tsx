@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+// @ts-ignore
+import PinchZoom from 'pinch-zoom-js'
 // @ts-ignore
 import typography from "@/lib/typography.js"
 import { PROXY_BASE_URL } from '@/lib/supabase'
@@ -299,6 +300,10 @@ export default function UnifiedGalleryComplete({
     // 스크롤 컨테이너 ref
     const scrollContainerRef = useRef<HTMLDivElement>(null)
     const thumbnailScrollRef = useRef<HTMLDivElement>(null)
+    
+    // 핀치줌 컨테이너 ref (썸네일형용)
+    const thumbnailPinchZoomRef = useRef<HTMLDivElement>(null)
+    const thumbnailPinchZoomInstance = useRef<any>(null)
 
     // 로컬 개발에서는 더미 데이터 사용
     const isDevelopment = process.env.NODE_ENV === 'development'
@@ -372,6 +377,89 @@ export default function UnifiedGalleryComplete({
     }, [pageId, isDevelopment])
 
     const hasImages = images && images.length > 0
+
+    // 썸네일형 갤러리 핀치줌 초기화
+    useEffect(() => {
+        if (!galleryZoomEnabled || galleryType !== "thumbnail") return
+        
+        const element = thumbnailPinchZoomRef.current
+        if (!element) return
+
+        // 이전 인스턴스 정리
+        if (thumbnailPinchZoomInstance.current) {
+            try {
+                thumbnailPinchZoomInstance.current.destroy()
+            } catch (e) {
+                console.warn('PinchZoom destroy error:', e)
+            }
+            thumbnailPinchZoomInstance.current = null
+        }
+
+        // 새 인스턴스 생성
+        try {
+            thumbnailPinchZoomInstance.current = new PinchZoom(element, {
+                minZoom: 1,
+                maxZoom: 3,
+                draggableUnzoomed: false, // 줌 안 된 상태에서 드래그 금지
+                lockDragAxis: false,
+                setOffsetsOnce: true,
+                use2d: true,
+                verticalPadding: 0,
+                horizontalPadding: 0,
+            })
+        } catch (e) {
+            console.warn('PinchZoom init error:', e)
+        }
+
+        return () => {
+            if (thumbnailPinchZoomInstance.current) {
+                try {
+                    thumbnailPinchZoomInstance.current.destroy()
+                } catch (e) {
+                    console.warn('PinchZoom cleanup error:', e)
+                }
+                thumbnailPinchZoomInstance.current = null
+            }
+        }
+    }, [galleryZoomEnabled, galleryType, selectedIndex])
+
+    // 슬라이드형 갤러리 핀치줌 초기화
+    useEffect(() => {
+        if (!galleryZoomEnabled || galleryType !== "slide") return
+        
+        const elements = document.querySelectorAll('.slide-pinch-zoom')
+        if (!elements || elements.length === 0) return
+
+        const instances: any[] = []
+
+        elements.forEach((element) => {
+            try {
+                const pz = new PinchZoom(element as HTMLElement, {
+                    minZoom: 1,
+                    maxZoom: 3,
+                    draggableUnzoomed: false,
+                    lockDragAxis: false,
+                    setOffsetsOnce: true,
+                    use2d: true,
+                    verticalPadding: 0,
+                    horizontalPadding: 0,
+                })
+                instances.push(pz)
+            } catch (e) {
+                console.warn('PinchZoom init error:', e)
+            }
+        })
+
+        return () => {
+            instances.forEach((pz) => {
+                try {
+                    pz.destroy()
+                } catch (e) {
+                    console.warn('PinchZoom cleanup error:', e)
+                }
+            })
+        }
+    }, [galleryZoomEnabled, galleryType, images.length])
 
     // 애니메이션 설정
     const animationVariants = {
@@ -783,51 +871,39 @@ export default function UnifiedGalleryComplete({
                                     }}
                                 >
                                     {galleryZoomEnabled ? (
-                                        <TransformWrapper
-                                            minScale={1}
-                                            maxScale={3}
-                                            initialScale={1}
-                                            centerOnInit={true}
-                                            centerZoomedOut={true}
-                                            wheel={{ disabled: true }}
-                                            doubleClick={{ disabled: false, step: 0.7 }}
-                                            panning={{ disabled: false, velocityDisabled: true }}
-                                            alignmentAnimation={{ disabled: false }}
+                                        <div
+                                            className="slide-pinch-zoom"
+                                            style={{
+                                                width: "100%",
+                                                height: "100%",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                overflow: "hidden",
+                                            }}
                                         >
-                                            <TransformComponent
-                                                wrapperStyle={{
-                                                    width: "100%",
-                                                    height: "100%",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
+                                            <img
+                                                src={image.src}
+                                                alt={image.alt}
+                                                draggable={false}
+                                                style={{
+                                                    maxWidth: "100%",
+                                                    maxHeight: "100%",
+                                                    objectFit: "cover",
+                                                    objectPosition: "center",
+                                                    userSelect: "none",
+                                                    display: "block",
                                                 }}
-                                            >
-                                                <img
-                                                    src={image.src}
-                                                    alt={image.alt}
-                                                    draggable={false}
-                                                    style={{
-                                                        width: "auto",
-                                                        height: "auto",
-                                                        maxWidth: "100%",
-                                                        maxHeight: "529px",
-                                                        objectFit: "cover",
-                                                        objectPosition: "center",
-                                                        userSelect: "none",
-                                                        display: "block",
-                                                    }}
-                                                    onLoad={handleImageLoad}
-                                                    onError={(e) => {
-                                                        try {
-                                                            ;(
-                                                                e.target as HTMLImageElement
-                                                            ).style.display = "none"
-                                                        } catch (_) {}
-                                                    }}
-                                                />
-                                            </TransformComponent>
-                                        </TransformWrapper>
+                                                onLoad={handleImageLoad}
+                                                onError={(e) => {
+                                                    try {
+                                                        ;(
+                                                            e.target as HTMLImageElement
+                                                        ).style.display = "none"
+                                                    } catch (_) {}
+                                                }}
+                                            />
+                                        </div>
                                     ) : (
                                         <img
                                             src={image.src}
@@ -1011,55 +1087,43 @@ export default function UnifiedGalleryComplete({
                             transition={{ duration: 0.3 }}
                         >
                             {galleryZoomEnabled ? (
-                                <TransformWrapper
-                                    minScale={1}
-                                    maxScale={3}
-                                    initialScale={1}
-                                    centerOnInit={true}
-                                    centerZoomedOut={true}
-                                    wheel={{ disabled: true }}
-                                    doubleClick={{ disabled: false, step: 0.7 }}
-                                    panning={{ disabled: false, velocityDisabled: true }}
-                                    alignmentAnimation={{ disabled: false }}
+                                <div
+                                    ref={thumbnailPinchZoomRef}
+                                    style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        overflow: "hidden",
+                                    }}
                                 >
-                                    <TransformComponent
-                                        wrapperStyle={{
-                                            width: "100%",
-                                            height: "100%",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
+                                    <img
+                                        src={
+                                            images[selectedIndex] &&
+                                            images[selectedIndex].src
+                                        }
+                                        alt={
+                                            images[selectedIndex] &&
+                                            images[selectedIndex].alt
+                                        }
+                                        style={{
+                                            maxWidth: "100%",
+                                            maxHeight: "100%",
+                                            objectFit: "contain",
+                                            userSelect: "none",
+                                            display: "block",
                                         }}
-                                    >
-                                        <img
-                                            src={
-                                                images[selectedIndex] &&
-                                                images[selectedIndex].src
-                                            }
-                                            alt={
-                                                images[selectedIndex] &&
-                                                images[selectedIndex].alt
-                                            }
-                                            style={{
-                                                width: "auto",
-                                                height: "auto",
-                                                maxWidth: "100%",
-                                                maxHeight: "460px",
-                                                objectFit: "contain",
-                                                userSelect: "none",
-                                                display: "block",
-                                            }}
-                                            onLoad={handleImageLoad}
-                                            onError={(e) => {
-                                                try {
-                                                    ;(
-                                                        e.target as HTMLImageElement
-                                                    ).style.display = "none"
-                                                } catch (_) {}
-                                            }}
-                                        />
-                                    </TransformComponent>
-                                </TransformWrapper>
+                                        onLoad={handleImageLoad}
+                                        onError={(e) => {
+                                            try {
+                                                ;(
+                                                    e.target as HTMLImageElement
+                                                ).style.display = "none"
+                                            } catch (_) {}
+                                        }}
+                                    />
+                                </div>
                             ) : (
                                 <img
                                     src={
