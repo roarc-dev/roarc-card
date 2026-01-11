@@ -788,18 +788,19 @@ export default function UnifiedGalleryComplete({
                                             maxScale={3}
                                             initialScale={1}
                                             centerOnInit={true}
+                                            centerZoomedOut={true}
                                             wheel={{ disabled: true }}
-                                            doubleClick={{ disabled: false }}
-                                            panning={{ disabled: false }}
+                                            doubleClick={{ disabled: false, step: 0.7 }}
+                                            panning={{ disabled: false, velocityDisabled: true }}
+                                            alignmentAnimation={{ disabled: false }}
                                         >
                                             <TransformComponent
                                                 wrapperStyle={{
                                                     width: "100%",
                                                     height: "100%",
-                                                }}
-                                                contentStyle={{
-                                                    width: "100%",
-                                                    height: "100%",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
                                                 }}
                                             >
                                                 <img
@@ -807,8 +808,10 @@ export default function UnifiedGalleryComplete({
                                                     alt={image.alt}
                                                     draggable={false}
                                                     style={{
-                                                        width: "100%",
-                                                        height: "100%",
+                                                        width: "auto",
+                                                        height: "auto",
+                                                        maxWidth: "100%",
+                                                        maxHeight: "529px",
                                                         objectFit: "cover",
                                                         objectPosition: "center",
                                                         userSelect: "none",
@@ -1013,9 +1016,11 @@ export default function UnifiedGalleryComplete({
                                     maxScale={3}
                                     initialScale={1}
                                     centerOnInit={true}
+                                    centerZoomedOut={true}
                                     wheel={{ disabled: true }}
-                                    doubleClick={{ disabled: false }}
-                                    panning={{ disabled: false }}
+                                    doubleClick={{ disabled: false, step: 0.7 }}
+                                    panning={{ disabled: false, velocityDisabled: true }}
+                                    alignmentAnimation={{ disabled: false }}
                                 >
                                     <TransformComponent
                                         wrapperStyle={{
@@ -1024,10 +1029,6 @@ export default function UnifiedGalleryComplete({
                                             display: "flex",
                                             alignItems: "center",
                                             justifyContent: "center",
-                                        }}
-                                        contentStyle={{
-                                            width: "100%",
-                                            height: "100%",
                                         }}
                                     >
                                         <img
@@ -1040,8 +1041,10 @@ export default function UnifiedGalleryComplete({
                                                 images[selectedIndex].alt
                                             }
                                             style={{
+                                                width: "auto",
+                                                height: "auto",
                                                 maxWidth: "100%",
-                                                maxHeight: "100%",
+                                                maxHeight: "460px",
                                                 objectFit: "contain",
                                                 userSelect: "none",
                                                 display: "block",
