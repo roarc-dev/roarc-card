@@ -40,11 +40,13 @@ const FONT_STACKS = {
 async function getAccountInfoByPageId(pageId: string) {
     try {
         const response = await fetch(
-            `${PROXY_BASE_URL}/api/contacts?action=getByPageId&pageId=${pageId}`,
+            `${PROXY_BASE_URL}/api/contacts?action=getByPageId&pageId=${pageId}&_t=${Date.now()}`,
             {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
                 },
             }
         )
