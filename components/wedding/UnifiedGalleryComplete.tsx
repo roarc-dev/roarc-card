@@ -481,28 +481,8 @@ export default function UnifiedGalleryComplete({
     const scrollThumbnailToCenter = useCallback((index: number) => {
         if (thumbnailSwiperRef.current && galleryType === "thumbnail") {
             const swiper = thumbnailSwiperRef.current
-            const wrapper = swiper.wrapperEl
-            if (!wrapper) return
-            
-            const thumbnailWidth = 60 // 썸네일 너비
-            const gap = 6 // 썸네일 간격
-            const paddingLeft = 16 // 왼쪽 패딩
-            
-            // 선택된 썸네일의 왼쪽 위치 계산
-            const thumbnailLeft = index * (thumbnailWidth + gap) + paddingLeft
-            
-            // 컨테이너 중앙에 썸네일을 위치시키기 위한 스크롤 위치 계산
-            const containerWidth = wrapper.parentElement?.clientWidth || 0
-            const scrollLeft = thumbnailLeft - containerWidth / 2 + thumbnailWidth / 2
-            
-            // 스크롤 위치가 음수가 되지 않도록 하고, 최대 스크롤 범위를 넘지 않도록 제한
-            const maxScrollLeft = wrapper.scrollWidth - containerWidth
-            const clampedScrollLeft = Math.max(0, Math.min(scrollLeft, maxScrollLeft))
-            
-            wrapper.scrollTo({
-                left: clampedScrollLeft,
-                behavior: "smooth",
-            })
+            // Swiper의 slideTo를 사용하여 선택된 썸네일을 가운데로 이동
+            swiper.slideTo(index, 300)
             
             // 그라데이션 상태 업데이트
             setTimeout(() => {
@@ -528,13 +508,6 @@ export default function UnifiedGalleryComplete({
             window.removeEventListener("resize", handleResize)
         }
     }, [galleryType, images.length, checkThumbnailScrollState])
-
-    // selectedIndex 변경 시 썸네일 가운데 정렬
-    useEffect(() => {
-        if (galleryType === "thumbnail" && thumbnailSwiperRef.current) {
-            scrollThumbnailToCenter(selectedIndex)
-        }
-    }, [selectedIndex, galleryType, scrollThumbnailToCenter])
 
     if (!hasImages && loading) {
         return (
@@ -761,6 +734,7 @@ export default function UnifiedGalleryComplete({
                         fadeEffect={{
                             crossFade: true
                         }}
+                        speed={600}
                         zoom={galleryZoomEnabled ? {
                             maxRatio: 3,
                             minRatio: 1,
@@ -843,12 +817,16 @@ export default function UnifiedGalleryComplete({
                         modules={[]}
                         spaceBetween={6}
                         slidesPerView="auto"
-                        centeredSlides={false}
+                        centeredSlides={true}
+                        centeredSlidesBounds={true}
                         slideToClickedSlide={true}
                         onSwiper={(swiper) => {
                             thumbnailSwiperRef.current = swiper
-                            // 초기 그라데이션 상태 체크
-                            setTimeout(() => checkThumbnailScrollState(), 100)
+                            // 초기 그라데이션 상태 체크 및 선택된 썸네일로 이동
+                            setTimeout(() => {
+                                checkThumbnailScrollState()
+                                swiper.slideTo(selectedIndex, 0)
+                            }, 100)
                         }}
                         onSlideChange={() => {
                             checkThumbnailScrollState()
@@ -879,8 +857,10 @@ export default function UnifiedGalleryComplete({
                                 onClick={() => {
                                     setSelectedIndex(idx)
                                     if (mainSwiperRef.current) {
-                                        mainSwiperRef.current.slideTo(idx)
+                                        mainSwiperRef.current.slideTo(idx, 600)
                                     }
+                                    // 썸네일도 가운데로
+                                    scrollThumbnailToCenter(idx)
                                 }}
                             >
                                 <div
