@@ -39,15 +39,12 @@ const FONT_STACKS = {
 // 프록시를 통한 안전한 계좌 정보 가져오기
 async function getAccountInfoByPageId(pageId: string) {
     try {
+        // URL에 타임스탬프를 추가하여 캐시 방지
+        // CORS 정책을 위해 불필요한 헤더 제거 (GET 요청에는 Content-Type, Cache-Control 불필요)
         const response = await fetch(
             `${PROXY_BASE_URL}/api/contacts?action=getByPageId&pageId=${pageId}&_t=${Date.now()}`,
             {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Cache-Control": "no-cache, no-store, must-revalidate",
-                    "Pragma": "no-cache",
-                },
             }
         )
 
