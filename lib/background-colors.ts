@@ -13,15 +13,14 @@
 
 /**
  * 웨딩 페이지 배경색 팔레트
- * 회색 계열만 사용
+ * 회색 계열만 사용 (명도 차이를 명확하게)
  */
 export const BACKGROUND_COLORS = {
-  WHITE: '#ffffff',
-  GRAY_50: '#FAFAFA',
-  GRAY_100: '#F5F5F5',
-  GRAY_150: '#ECECEC',
-  GRAY_200: '#ebebeb',
-  GRAY_300: '#e0e0e0',
+  WHITE: '#ffffff',      // 명도 1.000
+  LIGHT_GRAY: '#f5f5f5', // 명도 ~0.917
+  MID_GRAY: '#ebebeb',   // 명도 ~0.846
+  GRAY: '#e0e0e0',       // 명도 ~0.757
+  DARK_GRAY: '#d0d0d0',  // 명도 ~0.655
 } as const
 
 export type BackgroundColor = typeof BACKGROUND_COLORS[keyof typeof BACKGROUND_COLORS]
@@ -32,12 +31,26 @@ export type BackgroundColor = typeof BACKGROUND_COLORS[keyof typeof BACKGROUND_C
  */
 export const ASSIGNABLE_COLORS: BackgroundColor[] = [
   BACKGROUND_COLORS.WHITE,
-  BACKGROUND_COLORS.GRAY_50,
-  BACKGROUND_COLORS.GRAY_100,
-  BACKGROUND_COLORS.GRAY_150,
-  BACKGROUND_COLORS.GRAY_200,
-  BACKGROUND_COLORS.GRAY_300,
+  BACKGROUND_COLORS.LIGHT_GRAY,
+  BACKGROUND_COLORS.MID_GRAY,
+  BACKGROUND_COLORS.GRAY,
+  BACKGROUND_COLORS.DARK_GRAY,
 ]
+
+/**
+ * 컴포넌트별 선호 배경색
+ * 각 컴포넌트의 기존 배경색 또는 특성에 맞는 색상
+ */
+export const COMPONENT_PREFERRED_COLORS: Record<string, BackgroundColor> = {
+  CalendarProxy: BACKGROUND_COLORS.LIGHT_GRAY,     // 기존 #f5f5f5
+  UnifiedGalleryComplete: BACKGROUND_COLORS.LIGHT_GRAY, // 썸네일형 기본
+  Info: BACKGROUND_COLORS.MID_GRAY,                // 짙은 회색 선호 (흰색 카드)
+  Account: BACKGROUND_COLORS.LIGHT_GRAY,           // 기존 #FAFAFA → #f5f5f5
+  RSVPClient: BACKGROUND_COLORS.LIGHT_GRAY,        // 기존 #F5F5F5
+  CommentBoard: BACKGROUND_COLORS.WHITE,           // 기존 #ffffff
+  KakaoShare: BACKGROUND_COLORS.LIGHT_GRAY,        // 기존 #F5F5F5
+  LocationUnified: BACKGROUND_COLORS.WHITE,        // 고정
+}
 
 /**
  * 컴포넌트별 버튼 색상
@@ -85,8 +98,23 @@ function hasGoodContrast(color1: string, color2: string): boolean {
   const lum2 = getLuminance(color2)
   const contrast = Math.abs(lum1 - lum2)
 
-  // 최소 5% 명도 차이 필요 (10%에서 완화)
+  // 최소 5% 명도 차이 필요
   return contrast >= 0.05
+}
+
+/**
+ * 인접 컴포넌트와 명도 차이가 충분한지 확인 (더 엄격한 기준)
+ * @param color1 첫 번째 색상 (hex)
+ * @param color2 두 번째 색상 (hex)
+ * @returns 명도 차이가 최소 8% 이상이면 true
+ */
+function hasStrongContrast(color1: string, color2: string): boolean {
+  const lum1 = getLuminance(color1)
+  const lum2 = getLuminance(color2)
+  const contrast = Math.abs(lum1 - lum2)
+
+  // 인접 컴포넌트는 최소 8% 명도 차이 필요 (시각적으로 더 명확한 차이)
+  return contrast >= 0.08
 }
 
 /**
@@ -138,32 +166,57 @@ export function assignBackgroundColors(
         // 썸네일형: 다음 컴포넌트와 다른 색상, 흰색 금지
         const nextColor = nextComponent ? result[nextComponent] : null
         const prevColor = prevComponent ? result[prevComponent] : null
+        const preferredColor = COMPONENT_PREFERRED_COLORS[currentComponent]
 
-        const availableColors = ASSIGNABLE_COLORS.filter(color => {
-          if (color === BACKGROUND_COLORS.WHITE) return false // 흰색 금지
-          if (nextColor && color === nextColor) return false // 다음과 다름
-          if (prevColor && color === prevColor) return false // 이전과 다름
-          return true
-        })
+        // 선호 배경색이 조건을 만족하는지 확인
+        const canUsePreferred = preferredColor &&
+          preferredColor !== BACKGROUND_COLORS.WHITE &&
+          (!prevColor || (prevColor !== preferredColor && hasStrongContrast(preferredColor, prevColor))) &&
+          (!nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor)))
 
-        result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.GRAY_50
+        if (canUsePreferred) {
+          result[currentComponent] = preferredColor
+        } else {
+          // 선호 배경색을 사용할 수 없으면 다른 색상 선택
+          const availableColors = ASSIGNABLE_COLORS.filter(color => {
+            if (color === BACKGROUND_COLORS.WHITE) return false // 흰색 금지
+            if (nextColor && (color === nextColor || !hasStrongContrast(color, nextColor))) return false
+            if (prevColor && (color === prevColor || !hasStrongContrast(color, prevColor))) return false
+            return true
+          })
+
+          result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.LIGHT_GRAY
+        }
       }
       continue
     }
 
-    // 3. Info 컴포넌트 (흰색 금지)
+    // 3. Info 컴포넌트 (흰색 금지, 짙은 회색 선호)
     if (currentComponent === 'Info') {
       const prevColor = prevComponent ? result[prevComponent] : null
       const nextColor = nextComponent ? result[nextComponent] : null
+      const preferredColor = COMPONENT_PREFERRED_COLORS[currentComponent]
 
+      // 선호 배경색이 조건을 만족하는지 확인
+      const canUsePreferred =
+        preferredColor !== BACKGROUND_COLORS.WHITE &&
+        (!prevColor || (prevColor !== preferredColor && hasStrongContrast(preferredColor, prevColor))) &&
+        (!nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor)))
+
+      if (canUsePreferred) {
+        result[currentComponent] = preferredColor
+        continue
+      }
+
+      // 선호 배경색을 사용할 수 없으면 다른 색상 선택
       const availableColors = ASSIGNABLE_COLORS.filter(color => {
         if (color === BACKGROUND_COLORS.WHITE) return false // 흰색 금지
-        if (prevColor && color === prevColor) return false
-        if (nextColor && color === nextColor) return false
+        if (prevColor && (color === prevColor || !hasStrongContrast(color, prevColor))) return false
+        if (nextColor && (color === nextColor || !hasStrongContrast(color, nextColor))) return false
         return true
       })
 
-      result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.GRAY_200
+      result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.MID_GRAY
       continue
     }
 
@@ -171,6 +224,7 @@ export function assignBackgroundColors(
     const prevColor = prevComponent ? result[prevComponent] : null
     const nextColor = nextComponent ? result[nextComponent] : null
     const buttonColor = BUTTON_COLORS[currentComponent]
+    const preferredColor = COMPONENT_PREFERRED_COLORS[currentComponent]
 
     // 초대글 섹션(MainSection, InviteName) 바로 다음에 오는 컴포넌트인지 확인
     const isAfterInviteSection = prevComponent && (
@@ -179,15 +233,28 @@ export function assignBackgroundColors(
       prevComponent === 'bgm'
     )
 
+    // 선호 배경색이 조건을 만족하는지 확인
+    const canUsePreferred = preferredColor &&
+      !(isAfterInviteSection && preferredColor === BACKGROUND_COLORS.WHITE) &&
+      (!prevColor || (prevColor !== preferredColor && hasStrongContrast(preferredColor, prevColor))) &&
+      (!nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor))) &&
+      (!buttonColor || hasGoodContrast(preferredColor, buttonColor))
+
+    if (canUsePreferred) {
+      result[currentComponent] = preferredColor
+      continue
+    }
+
+    // 선호 배경색을 사용할 수 없으면 다른 색상 선택
     const availableColors = ASSIGNABLE_COLORS.filter(color => {
       // 초대글 섹션 바로 다음에 오는 컴포넌트는 흰색 금지 (경계 명확화)
       if (isAfterInviteSection && color === BACKGROUND_COLORS.WHITE) {
         return false
       }
 
-      // 이전/다음 컴포넌트와 색상이 달라야 함
-      if (prevColor && color === prevColor) return false
-      if (nextColor && color === nextColor) return false
+      // 이전/다음 컴포넌트와 명도 차이가 충분해야 함
+      if (prevColor && (color === prevColor || !hasStrongContrast(color, prevColor))) return false
+      if (nextColor && (color === nextColor || !hasStrongContrast(color, nextColor))) return false
 
       // 버튼 색상과 명도 차이가 충분해야 함
       if (buttonColor && !hasGoodContrast(color, buttonColor)) return false
@@ -196,7 +263,7 @@ export function assignBackgroundColors(
     })
 
     // 사용 가능한 색상 중 첫 번째 선택
-    result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.GRAY_100
+    result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.LIGHT_GRAY
   }
 
   return result
