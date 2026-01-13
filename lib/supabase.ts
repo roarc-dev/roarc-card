@@ -49,6 +49,7 @@ export interface PageSettings {
   contact?: string // 연락처 섹션 on/off ('on' | 'off')
   theme?: string
   type?: 'papillon' | 'eternal' | 'fiore' | 'mobile' // 페이지 타입
+  gallery_type?: 'slide' | 'thumbnail' // 갤러리 타입
   kko_title?: string // 카카오톡 공유 제목
   kko_date?: string // 카카오톡 공유 날짜
   account_text?: string // 계좌 안내 문구
