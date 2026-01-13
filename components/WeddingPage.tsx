@@ -295,7 +295,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
         width: '100%',
         padding: '40px 30px',
         textAlign: 'center',
-        background: '#F5F5F5',
+        background: componentBackgrounds['KakaoShare'] || '#F5F5F5',
       }}>
         <img src="https://cdn.roarc.kr/framer/logo/roarc_logotype.svg" alt="roarc" 
             style={{ 

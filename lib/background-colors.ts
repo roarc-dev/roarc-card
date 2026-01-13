@@ -78,15 +78,15 @@ function getLuminance(hex: string): number {
  * 두 색상의 명도 차이가 충분한지 확인
  * @param color1 첫 번째 색상 (hex)
  * @param color2 두 번째 색상 (hex)
- * @returns 명도 차이가 최소 10% 이상이면 true
+ * @returns 명도 차이가 최소 5% 이상이면 true
  */
 function hasGoodContrast(color1: string, color2: string): boolean {
   const lum1 = getLuminance(color1)
   const lum2 = getLuminance(color2)
   const contrast = Math.abs(lum1 - lum2)
 
-  // 최소 10% 명도 차이 필요
-  return contrast >= 0.1
+  // 최소 5% 명도 차이 필요 (10%에서 완화)
+  return contrast >= 0.05
 }
 
 /**
@@ -118,7 +118,13 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 2. LocationUnified는 흰색 고정
+    // 2. KakaoShare는 Footer와 동일한 색상 (#F5F5F5) 고정
+    if (currentComponent === 'KakaoShare') {
+      result[currentComponent] = BACKGROUND_COLORS.GRAY_100
+      continue
+    }
+
+    // 3. LocationUnified는 흰색 고정
     if (currentComponent === 'LocationUnified') {
       result[currentComponent] = BACKGROUND_COLORS.WHITE
       continue
@@ -167,12 +173,24 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 5. 나머지 컴포넌트 (CalendarProxy, Account, RSVPClient, CommentBoard, KakaoShare)
+    // 5. 나머지 컴포넌트 (CalendarProxy, Account, RSVPClient, CommentBoard)
     const prevColor = prevComponent ? result[prevComponent] : null
     const nextColor = nextComponent ? result[nextComponent] : null
     const buttonColor = BUTTON_COLORS[currentComponent]
 
+    // 초대글 섹션(MainSection, InviteName) 바로 다음에 오는 컴포넌트인지 확인
+    const isAfterInviteSection = prevComponent && (
+      prevComponent === 'MainSection' ||
+      prevComponent === 'InviteName' ||
+      prevComponent === 'bgm'
+    )
+
     const availableColors = ASSIGNABLE_COLORS.filter(color => {
+      // 초대글 섹션 바로 다음에 오는 컴포넌트는 흰색 금지 (경계 명확화)
+      if (isAfterInviteSection && color === BACKGROUND_COLORS.WHITE) {
+        return false
+      }
+
       // 이전/다음 컴포넌트와 색상이 달라야 함
       if (prevColor && color === prevColor) return false
       if (nextColor && color === nextColor) return false
