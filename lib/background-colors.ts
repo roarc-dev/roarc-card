@@ -118,13 +118,7 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 2. KakaoShare는 Footer와 동일한 색상 (#F5F5F5) 고정
-    if (currentComponent === 'KakaoShare') {
-      result[currentComponent] = BACKGROUND_COLORS.GRAY_100
-      continue
-    }
-
-    // 3. LocationUnified는 흰색 고정
+    // 2. LocationUnified는 흰색 고정
     if (currentComponent === 'LocationUnified') {
       result[currentComponent] = BACKGROUND_COLORS.WHITE
       continue
@@ -157,7 +151,7 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 4. Info 컴포넌트 (흰색 금지)
+    // 3. Info 컴포넌트 (흰색 금지)
     if (currentComponent === 'Info') {
       const prevColor = prevComponent ? result[prevComponent] : null
       const nextColor = nextComponent ? result[nextComponent] : null
@@ -173,7 +167,7 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 5. 나머지 컴포넌트 (CalendarProxy, Account, RSVPClient, CommentBoard)
+    // 4. 나머지 컴포넌트 (CalendarProxy, Account, RSVPClient, CommentBoard, KakaoShare)
     const prevColor = prevComponent ? result[prevComponent] : null
     const nextColor = nextComponent ? result[nextComponent] : null
     const buttonColor = BUTTON_COLORS[currentComponent]
