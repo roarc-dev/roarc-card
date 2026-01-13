@@ -357,6 +357,35 @@ export default function AccountBtn(props: AccountBtnProps) {
         return null
     }
 
+    // 신랑측 계좌 유무 확인
+    const hasGroomAccounts =
+        (accountInfo.groom_bank_name &&
+            accountInfo.groom_account &&
+            accountInfo.groom_bank) ||
+        (accountInfo.groom_father_bank_name &&
+            accountInfo.groom_father_account &&
+            accountInfo.groom_father_bank) ||
+        (accountInfo.groom_mother_bank_name &&
+            accountInfo.groom_mother_account &&
+            accountInfo.groom_mother_bank)
+
+    // 신부측 계좌 유무 확인
+    const hasBrideAccounts =
+        (accountInfo.bride_bank_name &&
+            accountInfo.bride_account &&
+            accountInfo.bride_bank) ||
+        (accountInfo.bride_father_bank_name &&
+            accountInfo.bride_father_account &&
+            accountInfo.bride_father_bank) ||
+        (accountInfo.bride_mother_bank_name &&
+            accountInfo.bride_mother_account &&
+            accountInfo.bride_mother_bank)
+
+    // 신랑, 신부 둘 다 계좌가 없으면 컴포넌트를 렌더링하지 않음
+    if (!hasGroomAccounts && !hasBrideAccounts) {
+        return null
+    }
+
     return (
         <div
             style={{
@@ -447,38 +476,42 @@ export default function AccountBtn(props: AccountBtnProps) {
                     transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
                     viewport={{ once: true, amount: 0.3 }}
                 >
-                    {/* 신랑측에게 버튼 */}
-                    <GroomAccountButton
-                        accountInfo={accountInfo}
-                        viewState={groomViewState}
-                        onToggle={toggleGroomView}
-                        onCopyGroom={copyGroomAccount}
-                        onCopyGroomFather={copyGroomFatherAccount}
-                        onCopyGroomMother={copyGroomMotherAccount}
-                        pretendardFontFamily={pretendardFontFamily}
-                    />
-
-                    {/* 신부측에게 버튼 */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{
-                            duration: 0.5,
-                            ease: "easeOut",
-                            delay: 0.3,
-                        }}
-                        viewport={{ once: true, amount: 0.3 }}
-                    >
-                        <BrideAccountButton
+                    {/* 신랑측에게 버튼 - 계좌가 있을 때만 렌더링 */}
+                    {hasGroomAccounts && (
+                        <GroomAccountButton
                             accountInfo={accountInfo}
-                            viewState={brideViewState}
-                            onToggle={toggleBrideView}
-                            onCopyBride={copyBrideAccount}
-                            onCopyBrideFather={copyBrideFatherAccount}
-                            onCopyBrideMother={copyBrideMotherAccount}
+                            viewState={groomViewState}
+                            onToggle={toggleGroomView}
+                            onCopyGroom={copyGroomAccount}
+                            onCopyGroomFather={copyGroomFatherAccount}
+                            onCopyGroomMother={copyGroomMotherAccount}
                             pretendardFontFamily={pretendardFontFamily}
                         />
-                    </motion.div>
+                    )}
+
+                    {/* 신부측에게 버튼 - 계좌가 있을 때만 렌더링 */}
+                    {hasBrideAccounts && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{
+                                duration: 0.5,
+                                ease: "easeOut",
+                                delay: 0.3,
+                            }}
+                            viewport={{ once: true, amount: 0.3 }}
+                        >
+                            <BrideAccountButton
+                                accountInfo={accountInfo}
+                                viewState={brideViewState}
+                                onToggle={toggleBrideView}
+                                onCopyBride={copyBrideAccount}
+                                onCopyBrideFather={copyBrideFatherAccount}
+                                onCopyBrideMother={copyBrideMotherAccount}
+                                pretendardFontFamily={pretendardFontFamily}
+                            />
+                        </motion.div>
+                    )}
                 </motion.div>
             
 
