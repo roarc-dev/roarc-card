@@ -94,9 +94,20 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
 
     if (pageSettings.component_order && Array.isArray(pageSettings.component_order)) {
       // admin에서 저장한 ID들을 정확한 ComponentType으로 변환
-      const customOrder = pageSettings.component_order
+      let customOrder = pageSettings.component_order
         .map((id: any) => normalizeComponentId(String(id)))
         .filter((id): id is ComponentType => id !== null)
+
+      // CalendarProxy 바로 다음에 CalendarAddBtn 자동 추가
+      // (admin에서는 calendar 하나로 관리하지만, 실제로는 두 컴포넌트가 함께 렌더링)
+      const expandedOrder: ComponentType[] = []
+      for (const comp of customOrder) {
+        expandedOrder.push(comp)
+        if (comp === 'CalendarProxy') {
+          expandedOrder.push('CalendarAddBtn')
+        }
+      }
+      customOrder = expandedOrder
 
       // 고정 컴포넌트 정의
       const fixedTop: ComponentType[] = ['bgm', 'MainSection', 'InviteName']
