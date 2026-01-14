@@ -43,7 +43,7 @@ export const ASSIGNABLE_COLORS: BackgroundColor[] = [
  */
 export const COMPONENT_PREFERRED_COLORS: Record<string, BackgroundColor> = {
   CalendarProxy: BACKGROUND_COLORS.LIGHT_GRAY,     // 기존 #f5f5f5
-  UnifiedGalleryComplete: BACKGROUND_COLORS.LIGHT_GRAY, // 썸네일형 기본
+  UnifiedGalleryComplete: BACKGROUND_COLORS.WHITE, // 썸네일형은 흰색 선호로 변경 (캘린더와 차별화)
   Info: BACKGROUND_COLORS.MID_GRAY,                // 짙은 회색 선호 (흰색 카드)
   Account: BACKGROUND_COLORS.LIGHT_GRAY,           // 기존 #FAFAFA → #f5f5f5
   RSVPClient: BACKGROUND_COLORS.LIGHT_GRAY,        // 기존 #F5F5F5
@@ -115,6 +115,32 @@ function hasStrongContrast(color1: string, color2: string): boolean {
 
   // 인접 컴포넌트는 최소 8% 명도 차이 필요 (시각적으로 더 명확한 차이)
   return contrast >= 0.08
+}
+
+/**
+ * 배경색에 따라 적절한 버튼 색상 계산
+ * @param backgroundColor 배경색 (hex)
+ * @returns 버튼에 적합한 색상 (hex)
+ */
+export function getButtonColor(backgroundColor: string): string {
+  const bgLuminance = getLuminance(backgroundColor)
+
+  // 배경이 밝으면 버튼은 더 어둡게, 배경이 어두우면 버튼은 더 밝게
+  // 하지만 검은색 텍스트가 있으므로 너무 어두워지면 안 됨
+
+  if (bgLuminance > 0.9) {
+    // 매우 밝은 배경 (WHITE): 중간 밝은 회색 버튼
+    return '#ECECEC'
+  } else if (bgLuminance > 0.85) {
+    // 밝은 배경 (LIGHT_GRAY): 조금 더 어두운 버튼
+    return '#e0e0e0'
+  } else if (bgLuminance > 0.75) {
+    // 중간 배경 (MID_GRAY): 밝은 버튼
+    return '#f5f5f5'
+  } else {
+    // 어두운 배경 (GRAY, DARK_GRAY): 매우 밝은 버튼
+    return '#fafafa'
+  }
 }
 
 /**

@@ -3,7 +3,7 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import type { PageSettings } from '@/lib/supabase'
 import { ComponentType, DEFAULT_COMPONENT_ORDER } from '@/lib/components-registry'
-import { assignBackgroundColors, postProcessGalleryColors, type BackgroundColor } from '@/lib/background-colors'
+import { assignBackgroundColors, postProcessGalleryColors, getButtonColor, type BackgroundColor } from '@/lib/background-colors'
 // @ts-ignore
 import typography from "@/lib/typography.js"
 
@@ -114,6 +114,8 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
   const renderComponent = (type: ComponentType, index: number) => {
     // 동적 배경색 가져오기
     const backgroundColor = componentBackgrounds[type]
+    // 배경색에 따른 버튼 색상 계산
+    const buttonColor = backgroundColor ? getButtonColor(backgroundColor) : undefined
 
     // 디버깅: KakaoShare 렌더링 확인
     if (type === 'KakaoShare') {
@@ -173,6 +175,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
             key={`${type}-${index}`}
             pageId={pageId}
             backgroundColor={backgroundColor}
+            buttonColor={buttonColor}
           />
         )
       case 'Account':
@@ -181,6 +184,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
             key={`${type}-${index}`}
             pageId={pageId}
             style={backgroundColor ? { backgroundColor } : undefined}
+            buttonColor={buttonColor}
           />
         )
       case 'Info':
