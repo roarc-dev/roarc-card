@@ -65,6 +65,16 @@ export const BUTTON_COLORS: Record<string, string> = {
 }
 
 /**
+ * 컴포넌트별 허용 배경색
+ * 특정 컴포넌트는 밝은 회색만 사용하도록 제한
+ */
+export const COMPONENT_ALLOWED_COLORS: Record<string, BackgroundColor[]> = {
+  // RSVP와 Gallery는 버튼 대비를 위해 밝은 회색만 사용
+  RSVPClient: [BACKGROUND_COLORS.WHITE, BACKGROUND_COLORS.LIGHT_GRAY],
+  UnifiedGalleryComplete: [BACKGROUND_COLORS.WHITE, BACKGROUND_COLORS.LIGHT_GRAY],
+}
+
+/**
  * RGB 색상을 명도 값으로 변환
  * W3C relative luminance 공식 사용
  */
@@ -277,7 +287,9 @@ export function assignBackgroundColors(
           console.log('[Gallery] 썸네일형 - 선호색 사용:', preferredColor)
         } else {
           // 선호 배경색을 사용할 수 없으면 다른 색상 선택
-          const availableColors = ASSIGNABLE_COLORS.filter(color => {
+          // Gallery는 밝은 회색만 사용 (버튼 대비)
+          const allowedColors = COMPONENT_ALLOWED_COLORS[currentComponent] || ASSIGNABLE_COLORS
+          const availableColors = allowedColors.filter(color => {
             if (color === BACKGROUND_COLORS.WHITE) return false // 흰색 금지
             if (nextColor && (color === nextColor || !hasStrongContrast(color, nextColor))) return false
             if (prevColor && (color === prevColor || !hasStrongContrast(color, prevColor))) return false
@@ -311,7 +323,8 @@ export function assignBackgroundColors(
       }
 
       // 선호 배경색을 사용할 수 없으면 다른 색상 선택
-      const availableColors = ASSIGNABLE_COLORS.filter(color => {
+      const allowedColors = COMPONENT_ALLOWED_COLORS[currentComponent] || ASSIGNABLE_COLORS
+      const availableColors = allowedColors.filter(color => {
         if (color === BACKGROUND_COLORS.WHITE) return false // 흰색 금지
         if (prevColor && (color === prevColor || !hasStrongContrast(color, prevColor))) return false
         if (nextColor && (color === nextColor || !hasStrongContrast(color, nextColor))) return false
@@ -359,7 +372,9 @@ export function assignBackgroundColors(
     }
 
     // 선호 배경색을 사용할 수 없으면 다른 색상 선택
-    const availableColors = ASSIGNABLE_COLORS.filter(color => {
+    // 컴포넌트별 허용 색상이 있으면 사용 (RSVPClient는 밝은 회색만)
+    const allowedColors = COMPONENT_ALLOWED_COLORS[currentComponent] || ASSIGNABLE_COLORS
+    const availableColors = allowedColors.filter(color => {
       // 초대글 섹션 바로 다음에 오는 컴포넌트는 흰색 금지 (경계 명확화)
       if (isAfterInviteSection && color === BACKGROUND_COLORS.WHITE) {
         return false
