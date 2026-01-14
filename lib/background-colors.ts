@@ -194,6 +194,18 @@ export function assignBackgroundColors(
 
   console.log('[assignBackgroundColors] 시작:', { components, galleryType })
 
+  // ===== 1차 패스: 고정 색상 컴포넌트 먼저 할당 =====
+  // (다른 컴포넌트들이 findNextColor/findPrevColor로 찾을 수 있도록)
+  for (let i = 0; i < components.length; i++) {
+    const currentComponent = components[i]
+
+    if (currentComponent === 'LocationUnified' || currentComponent === 'CommentBoard') {
+      result[currentComponent] = BACKGROUND_COLORS.WHITE
+      console.log(`[1차 패스] ${currentComponent} 흰색 고정`)
+    }
+  }
+
+  // ===== 2차 패스: 나머지 컴포넌트 동적 할당 =====
   for (let i = 0; i < components.length; i++) {
     const currentComponent = components[i]
     const prevComponent = i > 0 ? components[i - 1] : null
@@ -210,9 +222,8 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 2. LocationUnified, CommentBoard는 흰색 고정
-    if (currentComponent === 'LocationUnified' || currentComponent === 'CommentBoard') {
-      result[currentComponent] = BACKGROUND_COLORS.WHITE
+    // 2. 이미 1차 패스에서 할당된 컴포넌트 건너뛰기
+    if (result[currentComponent]) {
       continue
     }
 
