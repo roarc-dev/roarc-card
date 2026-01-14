@@ -156,6 +156,8 @@ export function assignBackgroundColors(
 ): Record<string, BackgroundColor> {
   const result: Record<string, BackgroundColor> = {}
 
+  console.log('[assignBackgroundColors] 시작:', { components, galleryType })
+
   for (let i = 0; i < components.length; i++) {
     const currentComponent = components[i]
     const prevComponent = i > 0 ? components[i - 1] : null
@@ -180,13 +182,24 @@ export function assignBackgroundColors(
 
     // 3. Gallery 특수 처리
     if (currentComponent === 'UnifiedGalleryComplete') {
+      console.log('[Gallery 처리]', {
+        galleryType,
+        prevComponent,
+        prevColor: prevComponent ? result[prevComponent] : null,
+        nextComponent,
+        nextColor: nextComponent ? result[nextComponent] : null,
+        preferredColor: COMPONENT_PREFERRED_COLORS[currentComponent]
+      })
+
       if (galleryType === 'slide') {
         // 슬라이드형: 다음 컴포넌트와 동일한 색상
         if (nextComponent && result[nextComponent]) {
           result[currentComponent] = result[nextComponent]
+          console.log('[Gallery] 슬라이드형 - 다음 컴포넌트 색상 사용:', result[currentComponent])
         } else {
           // 다음 컴포넌트가 아직 결정되지 않았으면 임시로 흰색
           result[currentComponent] = BACKGROUND_COLORS.WHITE
+          console.log('[Gallery] 슬라이드형 - 임시 흰색 사용')
         }
       } else {
         // 썸네일형: 다음 컴포넌트와 다른 색상, 흰색 금지
@@ -200,8 +213,17 @@ export function assignBackgroundColors(
           (!prevColor || (prevColor !== preferredColor && hasStrongContrast(preferredColor, prevColor))) &&
           (!nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor)))
 
+        console.log('[Gallery] 썸네일형 선호색 체크:', {
+          preferredColor,
+          isWhite: preferredColor === BACKGROUND_COLORS.WHITE,
+          prevColorCheck: !prevColor || (prevColor !== preferredColor && hasStrongContrast(preferredColor, prevColor)),
+          nextColorCheck: !nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor)),
+          canUsePreferred
+        })
+
         if (canUsePreferred) {
           result[currentComponent] = preferredColor
+          console.log('[Gallery] 썸네일형 - 선호색 사용:', preferredColor)
         } else {
           // 선호 배경색을 사용할 수 없으면 다른 색상 선택
           const availableColors = ASSIGNABLE_COLORS.filter(color => {
@@ -211,7 +233,9 @@ export function assignBackgroundColors(
             return true
           })
 
+          console.log('[Gallery] 썸네일형 - 사용 가능한 색상:', availableColors)
           result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.LIGHT_GRAY
+          console.log('[Gallery] 썸네일형 - 선택된 색상:', result[currentComponent])
         }
       }
       continue
@@ -266,8 +290,18 @@ export function assignBackgroundColors(
       (!nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor))) &&
       (!buttonColor || hasGoodContrast(preferredColor, buttonColor))
 
+    console.log(`[${currentComponent}] 처리:`, {
+      prevComponent,
+      prevColor,
+      nextComponent,
+      nextColor,
+      preferredColor,
+      canUsePreferred
+    })
+
     if (canUsePreferred) {
       result[currentComponent] = preferredColor
+      console.log(`[${currentComponent}] 선호색 사용:`, preferredColor)
       continue
     }
 
@@ -288,8 +322,10 @@ export function assignBackgroundColors(
       return true
     })
 
+    console.log(`[${currentComponent}] 사용 가능한 색상:`, availableColors)
     // 사용 가능한 색상 중 첫 번째 선택
     result[currentComponent] = availableColors[0] || BACKGROUND_COLORS.LIGHT_GRAY
+    console.log(`[${currentComponent}] 최종 선택:`, result[currentComponent])
   }
 
   return result
