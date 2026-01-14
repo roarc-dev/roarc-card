@@ -91,11 +91,37 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
   // NameSection과 PhotoSectionProxy를 MainSection으로 통합
   const componentOrder = useMemo(() => {
     let order: ComponentType[]
+
     if (pageSettings.component_order && Array.isArray(pageSettings.component_order)) {
       // admin에서 저장한 ID들을 정확한 ComponentType으로 변환
-      order = pageSettings.component_order
+      const customOrder = pageSettings.component_order
         .map((id: any) => normalizeComponentId(String(id)))
         .filter((id): id is ComponentType => id !== null)
+
+      // 고정 컴포넌트 정의
+      const fixedTop: ComponentType[] = ['bgm', 'MainSection', 'InviteName']
+      const fixedBottom: ComponentType[] = ['KakaoShare']
+
+      const customOrderSet = new Set(customOrder)
+      const fixedSet = new Set([...fixedTop, ...fixedBottom])
+
+      // customOrder에도 없고 고정 컴포넌트도 아닌 것들
+      const remainingComponents = DEFAULT_COMPONENT_ORDER.filter(
+        comp => !customOrderSet.has(comp) && !fixedSet.has(comp)
+      )
+
+      // 최종 순서: 고정 상단 + 사용자 지정 순서 + 나머지 + 고정 하단
+      order = [
+        ...fixedTop,
+        ...customOrder,
+        ...remainingComponents,
+        ...fixedBottom,
+      ]
+
+      console.log('[WeddingPage] component_order (raw):', pageSettings.component_order)
+      console.log('[WeddingPage] component_order (custom):', customOrder)
+      console.log('[WeddingPage] component_order (remaining):', remainingComponents)
+      console.log('[WeddingPage] component_order (merged):', order)
     } else {
       order = DEFAULT_COMPONENT_ORDER
     }
@@ -127,8 +153,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
       }
     }
 
-    console.log('[WeddingPage] component_order (raw):', pageSettings.component_order)
-    console.log('[WeddingPage] component_order (normalized):', normalized)
+    console.log('[WeddingPage] component_order (final normalized):', normalized)
     return normalized
   }, [pageSettings.component_order])
 
