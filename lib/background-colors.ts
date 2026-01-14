@@ -6,7 +6,7 @@
  * 2. Info 컴포넌트는 흰색(#ffffff) 배경 금지 (내부 흰색 카드)
  * 3. Gallery 슬라이드형: 바로 밑 컴포넌트와 동일한 배경색 (경계 없음)
  * 4. Gallery 썸네일형: 바로 밑 컴포넌트와 다른 배경색 + 흰색 금지
- * 5. LocationUnified는 흰색(#ffffff) 배경 유지 (회색 지도 버튼)
+ * 5. LocationUnified, CommentBoard는 흰색(#ffffff) 배경 고정
  * 6. 인접 컴포넌트끼리 배경색이 달라야 함
  * 7. 컴포넌트 내부 버튼 색상과 명도 차이가 충분해야 함
  */
@@ -210,8 +210,8 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 2. LocationUnified는 흰색 고정
-    if (currentComponent === 'LocationUnified') {
+    // 2. LocationUnified, CommentBoard는 흰색 고정
+    if (currentComponent === 'LocationUnified' || currentComponent === 'CommentBoard') {
       result[currentComponent] = BACKGROUND_COLORS.WHITE
       continue
     }
