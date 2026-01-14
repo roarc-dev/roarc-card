@@ -106,6 +106,7 @@ interface AccountInfo {
 interface AccountBtnProps {
     pageId: string
     style?: React.CSSProperties
+    buttonColor?: string
 }
 
 type ViewState = "closed" | "open"
@@ -120,7 +121,7 @@ const DEFAULT_ACCOUNT_TEXT = `참석이 어려우신 분들을 위해 기재했�
  * @framerIntrinsicHeight 300
  */
 export default function AccountBtn(props: AccountBtnProps) {
-    const { pageId = "default", style } = props
+    const { pageId = "default", style, buttonColor } = props
 
     const [groomViewState, setGroomViewState] = useState<ViewState>("closed")
     const [brideViewState, setBrideViewState] = useState<ViewState>("closed")
@@ -325,7 +326,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                     style={{
                         width: "100%",
                         height: 54,
-                        background: "#EBEBEB",
+                        background: buttonColor || "#EBEBEB",
                         display: "flex",
                         justifyContent: "center",
                         alignItems: "center",
@@ -486,6 +487,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                             onCopyGroomFather={copyGroomFatherAccount}
                             onCopyGroomMother={copyGroomMotherAccount}
                             pretendardFontFamily={pretendardFontFamily}
+                            buttonColor={buttonColor}
                         />
                     )}
 
@@ -509,6 +511,7 @@ export default function AccountBtn(props: AccountBtnProps) {
                                 onCopyBrideFather={copyBrideFatherAccount}
                                 onCopyBrideMother={copyBrideMotherAccount}
                                 pretendardFontFamily={pretendardFontFamily}
+                                buttonColor={buttonColor}
                             />
                         </motion.div>
                     )}
@@ -579,6 +582,7 @@ interface GroomAccountButtonProps {
     onCopyGroomFather: () => void
     onCopyGroomMother: () => void
     pretendardFontFamily: string
+    buttonColor?: string
 }
 
 const GroomAccountButton = React.memo(function GroomAccountButton({
@@ -588,6 +592,7 @@ const GroomAccountButton = React.memo(function GroomAccountButton({
     onCopyGroom,
     onCopyGroomFather,
     onCopyGroomMother,
+    buttonColor,
     pretendardFontFamily,
 }: GroomAccountButtonProps) {
     const isOpen = viewState === "open"
@@ -620,7 +625,7 @@ const GroomAccountButton = React.memo(function GroomAccountButton({
                     height: 54,
                     minHeight: 54,
                     maxHeight: 54,
-                    background: "#EBEBEB",
+                    background: buttonColor || "#EBEBEB",
                     justifyContent: "center",
                     alignItems: "center",
                     gap: 10,
@@ -784,6 +789,7 @@ interface BrideAccountButtonProps {
     onCopyBrideFather: () => void
     onCopyBrideMother: () => void
     pretendardFontFamily: string
+    buttonColor?: string
 }
 
 const BrideAccountButton = React.memo(function BrideAccountButton({
@@ -794,6 +800,7 @@ const BrideAccountButton = React.memo(function BrideAccountButton({
     onCopyBrideFather,
     onCopyBrideMother,
     pretendardFontFamily,
+    buttonColor,
 }: BrideAccountButtonProps) {
     const isOpen = viewState === "open"
 
@@ -825,7 +832,7 @@ const BrideAccountButton = React.memo(function BrideAccountButton({
                     height: 54,
                     minHeight: 54,
                     maxHeight: 54,
-                    background: "#EBEBEB",
+                    background: buttonColor || "#EBEBEB",
                     justifyContent: "center",
                     alignItems: "center",
                     gap: 10,

@@ -3,6 +3,7 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import type { PageSettings } from '@/lib/supabase'
 import { ComponentType, DEFAULT_COMPONENT_ORDER } from '@/lib/components-registry'
+import { assignBackgroundColors, postProcessGalleryColors, getButtonColor, type BackgroundColor } from '@/lib/background-colors'
 // @ts-ignore
 import typography from "@/lib/typography.js"
 
@@ -91,8 +92,31 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
     return normalized
   }, [pageSettings.component_order])
 
+  // 동적 배경색 관리
+  const [componentBackgrounds, setComponentBackgrounds] = useState<Record<string, BackgroundColor>>({})
+
+  // 갤러리 타입 추적
+  const galleryType = useMemo(() => {
+    return (pageSettings.gallery_type as 'slide' | 'thumbnail' | undefined) || 'thumbnail'
+  }, [pageSettings.gallery_type])
+
+  // componentOrder 또는 galleryType 변경 시 배경색 재계산
+  useEffect(() => {
+    if (componentOrder.length > 0) {
+      const backgrounds = assignBackgroundColors(componentOrder, galleryType)
+      const finalBackgrounds = postProcessGalleryColors(componentOrder, backgrounds, galleryType)
+      setComponentBackgrounds(finalBackgrounds)
+      console.log('[WeddingPage] 배경색 할당 완료:', finalBackgrounds)
+    }
+  }, [componentOrder, galleryType])
+
   // 컴포넌트 렌더링 함수
   const renderComponent = (type: ComponentType, index: number) => {
+    // 동적 배경색 가져오기
+    const backgroundColor = componentBackgrounds[type]
+    // 배경색에 따른 버튼 색상 계산
+    const buttonColor = backgroundColor ? getButtonColor(backgroundColor) : undefined
+
     // 디버깅: KakaoShare 렌더링 확인
     if (type === 'KakaoShare') {
       console.error('🔴 [WeddingPage] KakaoShare 렌더링 시작, pageId:', pageId)
@@ -126,6 +150,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <CalendarSection
             key={`${type}-${index}`}
             pageId={pageId}
+            style={backgroundColor ? { backgroundColor } : undefined}
           />
         )
       case 'LocationUnified':
@@ -133,7 +158,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <LocationUnified
             key={`${type}-${index}`}
             pageId={pageId}
-            style={{ width: '100%' }}
+            style={backgroundColor ? { width: '100%', backgroundColor } : { width: '100%' }}
           />
         )
       case 'UnifiedGalleryComplete':
@@ -141,6 +166,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <UnifiedGalleryComplete
             key={`${type}-${index}`}
             pageId={pageId}
+            style={backgroundColor ? { backgroundColor } : undefined}
           />
         )
       case 'CommentBoard':
@@ -148,6 +174,8 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <CommentBoard
             key={`${type}-${index}`}
             pageId={pageId}
+            backgroundColor={backgroundColor}
+            buttonColor={buttonColor}
           />
         )
       case 'Account':
@@ -155,6 +183,8 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <Account
             key={`${type}-${index}`}
             pageId={pageId}
+            style={backgroundColor ? { backgroundColor } : undefined}
+            buttonColor={buttonColor}
           />
         )
       case 'Info':
@@ -162,6 +192,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <Info
             key={`${type}-${index}`}
             pageId={pageId}
+            style={backgroundColor ? { backgroundColor } : undefined}
           />
         )
       case 'RSVPClient':
@@ -169,6 +200,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
           <RSVPClient
             key={`${type}-${index}`}
             pageId={pageId}
+            backgroundColor={backgroundColor}
           />
         )
       case 'KakaoShare':
@@ -178,6 +210,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
             key={`${type}-${index}`}
             pageId={pageId}
             userUrl={pageSettings.user_url || ''}
+            style={backgroundColor ? { backgroundColor } : undefined}
           />
         )
 
@@ -266,7 +299,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
         width: '100%',
         padding: '40px 30px',
         textAlign: 'center',
-        background: '#F5F5F5',
+        background: componentBackgrounds['KakaoShare'] || '#F5F5F5',
       }}>
         <img src="https://cdn.roarc.kr/framer/logo/roarc_logotype.svg" alt="roarc" 
             style={{ 

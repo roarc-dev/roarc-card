@@ -29,6 +29,8 @@ type CommentItem = {
 interface CommentBoardProps {
     pageId?: string
     fontFamily?: string
+    backgroundColor?: string
+    buttonColor?: string
 }
 
 type CommentsApiResponse =
@@ -38,14 +40,17 @@ type CommentsApiResponse =
 export default function CommentBoard({
     pageId = 'default',
     fontFamily = 'Pretendard Regular',
+    backgroundColor,
+    buttonColor,
 }: CommentBoardProps) {
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
     // 폰트 패밀리 설정 (typography.js에서 가져온 폰트 스택 사용)
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
 
-    // 고정 색상 값
-    const BG = '#ffffff'
+    // 고정 색상 값 (props로 받은 backgroundColor가 있으면 사용, 없으면 기본값)
+    const BG = backgroundColor || '#ffffff'
+    const BUTTON_BG = buttonColor || '#ECECEC'
     const TXT = '#000'
     const INPUT_BG = '#F5f5f5'
     const INPUT_TXT = '#000'
@@ -429,7 +434,7 @@ export default function CommentBoard({
                             style={{
                                 width: '100%',
                                 height: 54,
-                                backgroundColor: '#ECECEC',
+                                backgroundColor: BUTTON_BG,
                                 color: TXT,
                                 fontSize: 14, // iOS 확대 방지
                                 fontFamily: pretendardFontFamily,

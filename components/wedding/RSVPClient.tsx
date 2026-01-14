@@ -48,7 +48,7 @@ export default function RSVPClient(props: RSVPClientProps) {
     const {
         pageId = "",
         style,
-        backgroundColor = "transparent",
+        backgroundColor = "#F5F5F5",
         buttonColor = "#e0e0e0",
         buttonTextColor = "#000",
         borderColor = "#99999933",
@@ -275,7 +275,7 @@ export default function RSVPClient(props: RSVPClientProps) {
             <div
                 style={{
                     margin: "80px 0",
-                    backgroundColor: "#F5F5F5",
+                    backgroundColor,
                     padding: "80px 0",
                 }}
             >
@@ -287,7 +287,7 @@ export default function RSVPClient(props: RSVPClientProps) {
                         maxWidth: "400px",
                         margin: "0 auto",
                         padding: "24px",
-                        backgroundColor,
+                        backgroundColor: "transparent",
                         borderRadius: "0px",
                     }}
                 >
@@ -351,7 +351,7 @@ export default function RSVPClient(props: RSVPClientProps) {
     return (
         <div
             style={{
-                backgroundColor: "#F5F5F5",
+                backgroundColor,
                 padding: "80px 0",
                 display: displayStyle,
                 width: "100%",
