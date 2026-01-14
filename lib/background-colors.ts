@@ -118,6 +118,42 @@ function hasStrongContrast(color1: string, color2: string): boolean {
 }
 
 /**
+ * 실제로 배경색이 할당된 이전 컴포넌트의 색상 찾기
+ * (제외 컴포넌트를 건너뛰고 찾음)
+ */
+function findPrevColor(
+  components: string[],
+  currentIndex: number,
+  result: Record<string, BackgroundColor>
+): BackgroundColor | null {
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const comp = components[i]
+    if (result[comp]) {
+      return result[comp]
+    }
+  }
+  return null
+}
+
+/**
+ * 실제로 배경색이 할당될 다음 컴포넌트의 색상 찾기
+ * (제외 컴포넌트를 건너뛰고 찾음)
+ */
+function findNextColor(
+  components: string[],
+  currentIndex: number,
+  result: Record<string, BackgroundColor>
+): BackgroundColor | null {
+  for (let i = currentIndex + 1; i < components.length; i++) {
+    const comp = components[i]
+    if (result[comp]) {
+      return result[comp]
+    }
+  }
+  return null
+}
+
+/**
  * 배경색에 따라 적절한 버튼 색상 계산
  * @param backgroundColor 배경색 (hex)
  * @returns 버튼에 적합한 색상 (hex)
@@ -182,19 +218,23 @@ export function assignBackgroundColors(
 
     // 3. Gallery 특수 처리
     if (currentComponent === 'UnifiedGalleryComplete') {
+      // 제외 컴포넌트를 건너뛰고 실제 배경색이 있는 이전/다음 컴포넌트 찾기
+      const prevColor = findPrevColor(components, i, result)
+      const nextColor = findNextColor(components, i, result)
+
       console.log('[Gallery 처리]', {
         galleryType,
         prevComponent,
-        prevColor: prevComponent ? result[prevComponent] : null,
+        prevColor,
         nextComponent,
-        nextColor: nextComponent ? result[nextComponent] : null,
+        nextColor,
         preferredColor: COMPONENT_PREFERRED_COLORS[currentComponent]
       })
 
       if (galleryType === 'slide') {
         // 슬라이드형: 다음 컴포넌트와 동일한 색상
-        if (nextComponent && result[nextComponent]) {
-          result[currentComponent] = result[nextComponent]
+        if (nextColor) {
+          result[currentComponent] = nextColor
           console.log('[Gallery] 슬라이드형 - 다음 컴포넌트 색상 사용:', result[currentComponent])
         } else {
           // 다음 컴포넌트가 아직 결정되지 않았으면 임시로 흰색
@@ -203,8 +243,6 @@ export function assignBackgroundColors(
         }
       } else {
         // 썸네일형: 다음 컴포넌트와 다른 색상, 흰색 금지
-        const nextColor = nextComponent ? result[nextComponent] : null
-        const prevColor = prevComponent ? result[prevComponent] : null
         const preferredColor = COMPONENT_PREFERRED_COLORS[currentComponent]
 
         // 선호 배경색이 조건을 만족하는지 확인
@@ -216,6 +254,8 @@ export function assignBackgroundColors(
         console.log('[Gallery] 썸네일형 선호색 체크:', {
           preferredColor,
           isWhite: preferredColor === BACKGROUND_COLORS.WHITE,
+          prevColor,
+          nextColor,
           prevColorCheck: !prevColor || (prevColor !== preferredColor && hasStrongContrast(preferredColor, prevColor)),
           nextColorCheck: !nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor)),
           canUsePreferred
@@ -243,8 +283,9 @@ export function assignBackgroundColors(
 
     // 3. Info 컴포넌트 (흰색 금지, 짙은 회색 선호)
     if (currentComponent === 'Info') {
-      const prevColor = prevComponent ? result[prevComponent] : null
-      const nextColor = nextComponent ? result[nextComponent] : null
+      // 제외 컴포넌트를 건너뛰고 실제 배경색이 있는 이전/다음 컴포넌트 찾기
+      const prevColor = findPrevColor(components, i, result)
+      const nextColor = findNextColor(components, i, result)
       const preferredColor = COMPONENT_PREFERRED_COLORS[currentComponent]
 
       // 선호 배경색이 조건을 만족하는지 확인
@@ -271,8 +312,9 @@ export function assignBackgroundColors(
     }
 
     // 4. 나머지 컴포넌트 (CalendarProxy, Account, RSVPClient, CommentBoard, KakaoShare)
-    const prevColor = prevComponent ? result[prevComponent] : null
-    const nextColor = nextComponent ? result[nextComponent] : null
+    // 제외 컴포넌트를 건너뛰고 실제 배경색이 있는 이전/다음 컴포넌트 찾기
+    const prevColor = findPrevColor(components, i, result)
+    const nextColor = findNextColor(components, i, result)
     const buttonColor = BUTTON_COLORS[currentComponent]
     const preferredColor = COMPONENT_PREFERRED_COLORS[currentComponent]
 
