@@ -6,9 +6,10 @@
  * 2. Info 컴포넌트는 흰색(#ffffff) 배경 금지 (내부 흰색 카드)
  * 3. Gallery 슬라이드형: 바로 밑 컴포넌트와 동일한 배경색 (경계 없음)
  * 4. Gallery 썸네일형: 바로 밑 컴포넌트와 다른 배경색 + 흰색 금지
- * 5. LocationUnified, CommentBoard는 흰색(#ffffff) 배경 고정
- * 6. 인접 컴포넌트끼리 배경색이 달라야 함
- * 7. 컴포넌트 내부 버튼 색상과 명도 차이가 충분해야 함
+ * 5. LocationUnified는 #fff를 1순위로 하되, 인접 컴포넌트에 #fff가 있을 경우 #fafafa까지 허용
+ * 6. CommentBoard는 흰색(#ffffff) 배경 고정
+ * 7. 인접 컴포넌트끼리 배경색이 달라야 함
+ * 8. 컴포넌트 내부 버튼 색상과 명도 차이가 충분해야 함
  */
 
 /**
@@ -51,7 +52,7 @@ export const COMPONENT_PREFERRED_COLORS: Record<string, BackgroundColor> = {
   RSVPClient: BACKGROUND_COLORS.LIGHT_GRAY,        // 기존 #F5F5F5
   CommentBoard: BACKGROUND_COLORS.WHITE,           // 기존 #ffffff
   KakaoShare: BACKGROUND_COLORS.LIGHT_GRAY,        // 기존 #F5F5F5
-  LocationUnified: BACKGROUND_COLORS.WHITE,        // 고정
+  LocationUnified: BACKGROUND_COLORS.WHITE,        // 기본값 #fff, 인접에 #fff 있으면 #fafafa 허용
 }
 
 /**
@@ -211,7 +212,7 @@ export function assignBackgroundColors(
   for (let i = 0; i < components.length; i++) {
     const currentComponent = components[i]
 
-    if (currentComponent === 'LocationUnified' || currentComponent === 'CommentBoard') {
+    if (currentComponent === 'CommentBoard') {
       result[currentComponent] = BACKGROUND_COLORS.WHITE
       console.log(`[1차 패스] ${currentComponent} 흰색 고정`)
     }
@@ -239,7 +240,45 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 3. Gallery 특수 처리
+    // 3. LocationUnified 특수 처리 (#fff 기본, 인접에 #fff 있으면 #fafafa 허용)
+    if (currentComponent === 'LocationUnified') {
+      const prevColor = findPrevColor(components, i, result)
+      const nextColor = findNextColor(components, i, result)
+      const preferredColor = COMPONENT_PREFERRED_COLORS[currentComponent] // #fff
+
+      // 인접 컴포넌트에 #fff가 있는지 확인
+      const hasAdjacentWhite = prevColor === BACKGROUND_COLORS.WHITE || nextColor === BACKGROUND_COLORS.WHITE
+
+      if (hasAdjacentWhite) {
+        // 인접에 #fff가 있으면 #fafafa 사용 가능
+        const canUseVeryLightGray = 
+          (!prevColor || (prevColor !== BACKGROUND_COLORS.VERY_LIGHT_GRAY && hasStrongContrast(BACKGROUND_COLORS.VERY_LIGHT_GRAY, prevColor))) &&
+          (!nextColor || (nextColor !== BACKGROUND_COLORS.VERY_LIGHT_GRAY && hasStrongContrast(BACKGROUND_COLORS.VERY_LIGHT_GRAY, nextColor)))
+
+        if (canUseVeryLightGray) {
+          result[currentComponent] = BACKGROUND_COLORS.VERY_LIGHT_GRAY
+          console.log(`[LocationUnified] 인접에 #fff 있음, #fafafa 사용`)
+          continue
+        }
+      }
+
+      // 기본값 #fff 사용 가능한지 확인
+      const canUseWhite = 
+        (!prevColor || (prevColor !== preferredColor && hasStrongContrast(preferredColor, prevColor))) &&
+        (!nextColor || (nextColor !== preferredColor && hasStrongContrast(preferredColor, nextColor)))
+
+      if (canUseWhite) {
+        result[currentComponent] = preferredColor
+        console.log(`[LocationUnified] 기본값 #fff 사용`)
+      } else {
+        // #fff를 사용할 수 없으면 #fafafa 시도
+        result[currentComponent] = BACKGROUND_COLORS.VERY_LIGHT_GRAY
+        console.log(`[LocationUnified] #fff 사용 불가, #fafafa 사용`)
+      }
+      continue
+    }
+
+    // 4. Gallery 특수 처리
     if (currentComponent === 'UnifiedGalleryComplete') {
       // 제외 컴포넌트를 건너뛰고 실제 배경색이 있는 이전/다음 컴포넌트 찾기
       const prevColor = findPrevColor(components, i, result)
@@ -314,7 +353,7 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 3. Info 컴포넌트 (흰색 금지, 짙은 회색 선호)
+    // 5. Info 컴포넌트 (흰색 금지, 짙은 회색 선호)
     if (currentComponent === 'Info') {
       // 제외 컴포넌트를 건너뛰고 실제 배경색이 있는 이전/다음 컴포넌트 찾기
       const prevColor = findPrevColor(components, i, result)
@@ -353,7 +392,7 @@ export function assignBackgroundColors(
       continue
     }
 
-    // 4. 나머지 컴포넌트 (CalendarProxy, Account, RSVPClient, CommentBoard, KakaoShare)
+    // 6. 나머지 컴포넌트 (CalendarProxy, Account, RSVPClient, CommentBoard, KakaoShare)
     // 제외 컴포넌트를 건너뛰고 실제 배경색이 있는 이전/다음 컴포넌트 찾기
     const prevColor = findPrevColor(components, i, result)
     const nextColor = findNextColor(components, i, result)

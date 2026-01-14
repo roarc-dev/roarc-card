@@ -369,6 +369,10 @@ export default function LocationUnified({
     const p22FontFamily = FONT_STACKS.p22
     const goldenbookFontFamily = FONT_STACKS.goldenbook
 
+    // 배경색에 따른 버튼 색상 결정 (#fafafa일 때 #f0f0f0, 그 외에는 #f5f5f5)
+    const backgroundColor = style?.backgroundColor as string | undefined
+    const buttonBackgroundColor = backgroundColor === '#fafafa' ? '#f0f0f0' : '#f5f5f5'
+
     // 통합 상태 관리
     const [locationSettings, setLocationSettings] = useState<LocationSettings>({
         venue_name_kr: "",
@@ -994,7 +998,7 @@ export default function LocationUnified({
                             gap: 5,
                             padding: "13px 13px",
                             border: "none",
-                            background: "#f5f5f5",
+                            background: buttonBackgroundColor,
                             cursor: "pointer",
                             textDecoration: "none",
                             fontFamily: pretendardFontFamily,
@@ -1025,7 +1029,7 @@ export default function LocationUnified({
                             gap: 5,
                             padding: "13px 13px",
                             border: "none",
-                            background: "#f5f5f5",
+                            background: buttonBackgroundColor,
                             cursor: "pointer",
                             textDecoration: "none",
                             fontFamily: pretendardFontFamily,
@@ -1056,7 +1060,7 @@ export default function LocationUnified({
                             gap: 5,
                             padding: "13px 13px",
                             border: "none",
-                            background: "#f5f5f5",
+                            background: buttonBackgroundColor,
                             cursor: "pointer",
                             textDecoration: "none",
                             fontFamily: pretendardFontFamily,
