@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from "react"
 import { motion, AnimatePresence, type MotionStyle } from "framer-motion"
-
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 import { PROXY_BASE_URL } from "@/lib/supabase"
 
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
@@ -78,18 +78,33 @@ export default function RSVPClient(props: RSVPClientProps) {
     const [submitStatus, setSubmitStatus] = useState("")
     const [errors, setErrors] = useState<ErrorsShape>({})
     const [isPrivacyExpanded, setIsPrivacyExpanded] = useState(false)
-    const [displayStyle, setDisplayStyle] = useState<"none" | "block">("none")
-    const [pageType, setPageType] = useState("")
+
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings } = usePageSettings(pageId)
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
-
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
-
     const p22FontFamily = FONT_STACKS.p22
-
     const goldenbookFontFamily = FONT_STACKS.goldenbook
 
-    const titleFontFamily = (() => {
+    // pageType과 displayStyle을 SWR 데이터에서 계산
+    const isDevelopment = process.env.NODE_ENV === 'development'
+
+    const pageType = useMemo(() => {
+        if (isDevelopment) return "default"
+        return pageSettings?.type || ""
+    }, [isDevelopment, pageSettings])
+
+    const displayStyle = useMemo(() => {
+        if (isDevelopment) return "block"
+        const serverRsvp = (pageSettings as any)?.rsvp
+        if (serverRsvp === "on" || serverRsvp === "off") {
+            return serverRsvp === "on" ? "block" : "none"
+        }
+        return "none"
+    }, [isDevelopment, pageSettings])
+
+    const titleFontFamily = useMemo(() => {
         const normalizedType = (pageType || "").toLowerCase().trim()
         if (normalizedType.includes("eternal")) {
             return goldenbookFontFamily
@@ -101,43 +116,7 @@ export default function RSVPClient(props: RSVPClientProps) {
             return p22FontFamily
         }
         return p22FontFamily
-    })()
-
-    // 서버에서 page_settings.rsvp 값을 조회해 표시 상태를 동기화
-    useEffect(() => {
-        let cancelled = false
-        async function fetchRsvp() {
-            try {
-                if (!pageId) return
-
-                // 로컬 개발에서는 바로 활성화
-                if (process.env.NODE_ENV === 'development') {
-                    setDisplayStyle("block")
-                    setPageType("default")
-                    return
-                }
-
-                const url = `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`
-                const res = await fetch(url, { cache: "no-store" })
-                if (!res.ok) return
-                const json = (await res.json()) as PageSettingsResp
-                const serverRsvp =
-                    (json && json.data && json.data.rsvp) || json?.rsvp
-                const settingsType =
-                    (json && json.data && json.data.type) || json?.type || ""
-                if (!cancelled) {
-                    if (serverRsvp === "on" || serverRsvp === "off") {
-                        setDisplayStyle(serverRsvp === "on" ? "block" : "none")
-                    }
-                    setPageType(settingsType)
-                }
-            } catch (_) {}
-        }
-        fetchRsvp()
-        return () => {
-            cancelled = true
-        }
-    }, [pageId])
+    }, [pageType, goldenbookFontFamily, p22FontFamily])
 
     const formatPhoneNumber = useCallback(
         (value: string) => {

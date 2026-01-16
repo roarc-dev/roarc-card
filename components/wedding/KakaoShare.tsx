@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 import { PROXY_BASE_URL } from '@/lib/supabase'
 
 const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js'
@@ -195,27 +195,44 @@ interface KakaoShareProps {
 export default function KakaoShare(props: KakaoShareProps) {
     const { pageId = '', userUrl = '', style } = props
 
-    const [settings, setSettings] = useState<PageSettings | null>(null)
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings } = usePageSettings(pageId)
+
     const [inviteData, setInviteData] = useState<InviteData | null>(null)
     const [kakaoReady, setKakaoReady] = useState(false)
     const [currentUrl, setCurrentUrl] = useState('')
 
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
 
-    // 데이터 로딩
+    // pageSettings를 settings로 변환
+    const settings = useMemo(() => {
+        if (!pageSettings) return null
+        const data = pageSettings as any
+        return {
+            page_url: data.page_url,
+            user_url: data.user_url,
+            groom_name_kr: data.groom_name_kr || data.groom_name,
+            bride_name_kr: data.bride_name_kr || data.bride_name,
+            kko_img: data.kko_img,
+            kko_title: data.kko_title,
+            kko_date: data.kko_date,
+            photo_section_image_url: data.photo_section_image_url,
+            wedding_date: data.wedding_date,
+            wedding_hour: data.wedding_hour,
+            wedding_minute: data.wedding_minute,
+            kakao_template_id: data.kakao_template_id,
+            template_id: data.template_id,
+        } as PageSettings
+    }, [pageSettings])
+
+    // invite 데이터 로딩 (별도 엔드포인트)
     useEffect(() => {
-        console.log('[KakaoShare] 데이터 로딩 시작, pageId:', pageId)
+        console.log('[KakaoShare] invite 데이터 로딩 시작, pageId:', pageId)
         if (!pageId) {
-            setSettings(null)
             setInviteData(null)
             return
         }
         let cancelled = false
-
-        void fetchPageSettings(pageId).then((data) => {
-            console.log('[KakaoShare] page-settings 로드 완료:', data)
-            if (!cancelled) setSettings(data)
-        })
 
         void fetchInviteData(pageId).then((data) => {
             console.log('[KakaoShare] invite 데이터 로드 완료:', data)
