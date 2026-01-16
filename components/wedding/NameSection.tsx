@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useEffect, useRef, useState, useMemo } from "react"
+import React, { useRef, useState } from "react"
 import { motion, useInView } from "framer-motion"
-import { PROXY_BASE_URL } from '@/lib/supabase'
 
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
 const FONT_STACKS = {
@@ -13,38 +12,20 @@ const FONT_STACKS = {
     sloopScriptPro: '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif',
 }
 
-// API 호출 함수
-async function getPageSettingsNames(pageId: string) {
-    if (!pageId) return { groom_name_en: "", bride_name_en: "" }
-    try {
-        const res = await fetch(
-            `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-        )
-        if (!res.ok) return { groom_name_en: "", bride_name_en: "" }
-        const json = await res.json()
-        const data = json && json.data ? json.data : {}
-        return {
-            groom_name_en: data.groom_name_en || "",
-            bride_name_en: data.bride_name_en || "",
-        }
-    } catch {
-        return { groom_name_en: "", bride_name_en: "" }
-    }
-}
 
 interface NameSectionProps {
+    groomNameEn?: string
+    brideNameEn?: string
     pageId?: string
     style?: React.CSSProperties
 }
 
 export default function NameSection(props: NameSectionProps) {
-    const { pageId, style } = props
+    const { groomNameEn, brideNameEn, pageId, style } = props
 
-    // 기본값 설정 (영문 이름만 사용)
-    const isDevelopment = process.env.NODE_ENV === 'development'
-    const [resolvedGroomName, setResolvedGroomName] = useState("GROOM")
-    const [resolvedBrideName, setResolvedBrideName] = useState("BRIDE")
+    // props로 받은 영문 이름 사용 (기본값: "GROOM", "BRIDE")
+    const resolvedGroomName = groomNameEn || "GROOM"
+    const resolvedBrideName = brideNameEn || "BRIDE"
 
     // 'and' SVG 컴포넌트
     const AndSvg = () => (
@@ -80,29 +61,6 @@ export default function NameSection(props: NameSectionProps) {
 
     // 애니메이션 트리거를 위한 useInView
     const isInView = useInView(nameContainerRef, { once: true, amount: 0.3 })
-
-    // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
-
-    // 페이지에서 신랑/신부 영문 이름 로드 (로컬 개발에서는 생략)
-    useEffect(() => {
-        if (isDevelopment) return // 로컬 개발에서는 API 호출 생략
-
-        let mounted = true
-        ;(async () => {
-            // page_settings에서 EN 이름만 사용 (폴백 없음)
-            // 영문 폰트로 이름을 표시하는 것이 필수이므로, 한글 데이터는 사용하지 않음
-            const settingsNames = await getPageSettingsNames(pageId || "")
-            if (!mounted) return
-            if (settingsNames.groom_name_en) {
-                setResolvedGroomName(settingsNames.groom_name_en)
-            }
-            if (settingsNames.bride_name_en) {
-                setResolvedBrideName(settingsNames.bride_name_en)
-            }
-            // 영문 이름이 없으면 기본값 "GROOM", "BRIDE" 유지
-        })()
-        return () => { mounted = false }
-    }, [pageId, isDevelopment])
 
     // 폰트 크기 자동 조정
     const adjustTextSize = (): void => {
