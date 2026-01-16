@@ -13,30 +13,7 @@ const FONT_STACKS = {
     sloopScriptPro: '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif',
 }
 
-// API 호출 함수들
-async function getInviteNamesByPageId(pageId: string) {
-    if (!pageId) return { groom_name: "", bride_name: "" }
-    try {
-        const response = await fetch(
-            `${PROXY_BASE_URL}/api/invite?pageId=${encodeURIComponent(pageId)}`,
-            { method: "GET", headers: { "Content-Type": "application/json" } }
-        )
-        if (!response.ok) {
-            return { groom_name: "", bride_name: "" }
-        }
-        const result = await response.json()
-        if (result && result.success && result.data) {
-            return {
-                groom_name: result.data.groom_name || "",
-                bride_name: result.data.bride_name || "",
-            }
-        }
-        return { groom_name: "", bride_name: "" }
-    } catch {
-        return { groom_name: "", bride_name: "" }
-    }
-}
-
+// API 호출 함수
 async function getPageSettingsNames(pageId: string) {
     if (!pageId) return { groom_name_en: "", bride_name_en: "" }
     try {
@@ -124,25 +101,17 @@ export default function NameSection(props: NameSectionProps) {
                 return // 사용자가 이름을 명시한 경우 API 호출 생략
             }
 
-            // 1) page_settings에서 EN 이름 우선 사용
+            // page_settings에서 EN 이름만 사용 (폴백 없음)
+            // 영문 폰트로 이름을 표시하는 것이 필수이므로, 한글 데이터는 사용하지 않음
             const settingsNames = await getPageSettingsNames(pageId || "")
             if (!mounted) return
-            let updated = false
             if (settingsNames.groom_name_en) {
                 setResolvedGroomName(settingsNames.groom_name_en)
-                updated = true
             }
             if (settingsNames.bride_name_en) {
                 setResolvedBrideName(settingsNames.bride_name_en)
-                updated = true
             }
-            if (updated) return
-
-            // 2) 폴백: invite에서 이름 사용
-            const names = await getInviteNamesByPageId(pageId || "")
-            if (!mounted) return
-            if (names.groom_name && !groomName) setResolvedGroomName(names.groom_name)
-            if (names.bride_name && !brideName) setResolvedBrideName(names.bride_name)
+            // 영문 이름이 없으면 기본값 "GROOM", "BRIDE" 유지
         })()
         return () => { mounted = false }
     }, [pageId, groomName, brideName, isDevelopment])
