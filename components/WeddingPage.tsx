@@ -11,11 +11,28 @@ import typography from "@/lib/typography.js"
 
 // 즉시 필요한 컴포넌트들 (정적 import)
 import BGM from '@/components/wedding/BGM'
-import WeddingInvitationSection from '@/components/wedding/WeddingInvitationSection'
-import CalendarSection from '@/components/wedding/CalendarSection'
-import Info from '@/components/wedding/Info'
-import KakaoShare from '@/components/wedding/KakaoShare'
 import { PlaceholderComponent } from '@/components/wedding'
+
+// 중간 크기 컴포넌트들 (Dynamic import)
+const WeddingInvitationSection = dynamic(() => import('@/components/wedding/WeddingInvitationSection'), {
+  loading: () => <div style={{ width: '100%', minHeight: '200px', background: '#fff' }} />,
+  ssr: true
+})
+
+const CalendarSection = dynamic(() => import('@/components/wedding/CalendarSection'), {
+  loading: () => <div style={{ width: '100%', minHeight: '300px', background: '#fafafa' }} />,
+  ssr: true
+})
+
+const Info = dynamic(() => import('@/components/wedding/Info'), {
+  loading: () => <div style={{ width: '100%', minHeight: '250px', background: '#f5f5f5' }} />,
+  ssr: true
+})
+
+const KakaoShare = dynamic(() => import('@/components/wedding/KakaoShare'), {
+  loading: () => <div style={{ width: '100%', minHeight: '150px', background: '#fff' }} />,
+  ssr: false // 공유 기능은 클라이언트에서만 필요
+})
 
 // 무거운 컴포넌트들 (Dynamic import - 코드 스플리팅)
 const MainSection = dynamic(() => import('@/components/wedding/MainSection'), {

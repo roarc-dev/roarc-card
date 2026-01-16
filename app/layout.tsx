@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { SWRProvider } from '@/components/providers/SWRProvider'
 import './globals.css'
 import 'swiper/css'
 import 'swiper/css/zoom'
@@ -44,6 +45,15 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        {/* Resource Hints - 외부 리소스 미리 연결 */}
+        <link rel="preconnect" href="https://cdn.roarc.kr" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://use.typekit.net" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://wedding-admin-proxy.vercel.app" />
+        <link rel="dns-prefetch" href="https://cdn.roarc.kr" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+        <link rel="dns-prefetch" href="https://use.typekit.net" />
+
         {/* Typography 폰트 스크립트 - 전역 로드 */}
         <Script
           src="https://cdn.roarc.kr/fonts/typography.js"
@@ -163,7 +173,7 @@ export default function RootLayout({
           src="//dapi.kakao.com/v2/maps/sdk.js?appkey=db63a9b37174b5a425a21d797318dff8"
           strategy="afterInteractive"
         />
-        {children}
+        <SWRProvider>{children}</SWRProvider>
       </body>
     </html>
   )
