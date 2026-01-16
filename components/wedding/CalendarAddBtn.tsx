@@ -3,9 +3,8 @@
 import * as React from 'react'
 import { motion, type MotionStyle } from 'framer-motion'
 import { addPropertyControls, ControlType } from 'framer'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-
-import { PROXY_BASE_URL } from '@/lib/supabase'
+import { useMemo, useState } from 'react'
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
 const FONT_STACKS = {
@@ -48,65 +47,28 @@ export default function CalendarAddBtn({
     pageId = 'demo',
     style,
 }: CalendarAddBtnProps) {
-    const [pageSettings, setPageSettings] = useState<PageSettingsShape>({
-        groom_name_kr: '',
-        bride_name_kr: '',
-        wedding_date: '',
-        wedding_hour: '14',
-        wedding_minute: '00',
-        venue_name: '',
-        venue_address: '',
-        transport_location_name: '',
-    })
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings: rawPageSettings, isLoading, isError } = usePageSettings(pageId)
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
     // 폰트 패밀리 설정 (typography.js에서 가져온 폰트 스택 사용)
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
 
-    const fetchPageSettings = useCallback(async () => {
-        if (!pageId) {
-            console.log('❌ pageId가 없습니다:', pageId)
-            return
-        }
+    // pageSettings를 PageSettingsShape 형식으로 변환
+    const pageSettings = useMemo(() => ({
+        groom_name_kr: (rawPageSettings as any)?.groom_name_kr || rawPageSettings?.groom_name || '',
+        bride_name_kr: (rawPageSettings as any)?.bride_name_kr || rawPageSettings?.bride_name || '',
+        wedding_date: rawPageSettings?.wedding_date || '',
+        wedding_hour: (rawPageSettings as any)?.wedding_hour || '14',
+        wedding_minute: (rawPageSettings as any)?.wedding_minute || '00',
+        venue_name: rawPageSettings?.venue_name || '',
+        venue_address: rawPageSettings?.venue_address || '',
+        transport_location_name: (rawPageSettings as any)?.transport_location_name || '',
+    }), [rawPageSettings])
 
-        console.log('🔄 페이지 설정 로드 시작:', pageId)
-        setLoading(true)
-        setError(null)
-
-        try {
-            const url = `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`
-            console.log('📡 API 호출:', url)
-
-            const response = await fetch(url)
-            console.log('📨 Response status:', response.status)
-
-            const result = (await response.json()) as
-                | { success: true; data: PageSettingsShape }
-                | { success: false; error?: string }
-            console.log('📋 API 응답 데이터:', result)
-
-            if (result.success) {
-                console.log('✅ 설정 데이터 로드 성공:', result.data)
-                setPageSettings(result.data)
-            } else {
-                console.log('❌ API 오류:', result.error)
-                throw new Error(result.error || '설정을 불러올 수 없습니다.')
-            }
-        } catch (err: unknown) {
-            console.error('❌ 페이지 설정 로드 실패:', err)
-            setError(err instanceof Error ? err.message : '설정을 불러오는데 실패했습니다.')
-        } finally {
-            setLoading(false)
-        }
-    }, [pageId])
-
-    // 페이지 설정 로드
-    useEffect(() => {
-        void fetchPageSettings()
-    }, [fetchPageSettings])
+    const loading = isLoading
+    const error = isError ? '설정을 불러오는데 실패했습니다.' : null
 
     const handleClick = () => {
         console.log('🔘 버튼 클릭됨')
