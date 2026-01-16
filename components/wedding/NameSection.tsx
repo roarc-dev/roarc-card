@@ -34,23 +34,17 @@ async function getPageSettingsNames(pageId: string) {
 }
 
 interface NameSectionProps {
-    groomName?: string
-    brideName?: string
     pageId?: string
     style?: React.CSSProperties
 }
 
 export default function NameSection(props: NameSectionProps) {
-    const { groomName = "GROOM", brideName = "BRIDE", pageId, style } = props
+    const { pageId, style } = props
 
-    // 로컬 개발에서는 props를 우선 사용 (더미 데이터)
+    // 기본값 설정 (영문 이름만 사용)
     const isDevelopment = process.env.NODE_ENV === 'development'
-    const [resolvedGroomName, setResolvedGroomName] = useState(
-        isDevelopment && groomName !== "GROOM" ? groomName : groomName
-    )
-    const [resolvedBrideName, setResolvedBrideName] = useState(
-        isDevelopment && brideName !== "BRIDE" ? brideName : brideName
-    )
+    const [resolvedGroomName, setResolvedGroomName] = useState("GROOM")
+    const [resolvedBrideName, setResolvedBrideName] = useState("BRIDE")
 
     // 'and' SVG 컴포넌트
     const AndSvg = () => (
@@ -89,18 +83,12 @@ export default function NameSection(props: NameSectionProps) {
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
-    // 페이지에서 신랑/신부 이름 로드 (props 값이 비어있을 때만, 로컬 개발에서는 생략)
+    // 페이지에서 신랑/신부 영문 이름 로드 (로컬 개발에서는 생략)
     useEffect(() => {
         if (isDevelopment) return // 로컬 개발에서는 API 호출 생략
 
         let mounted = true
         ;(async () => {
-            const hasCustomGroom = !!(groomName && groomName.trim() && groomName !== "GROOM")
-            const hasCustomBride = !!(brideName && brideName.trim() && brideName !== "BRIDE")
-            if (hasCustomGroom || hasCustomBride) {
-                return // 사용자가 이름을 명시한 경우 API 호출 생략
-            }
-
             // page_settings에서 EN 이름만 사용 (폴백 없음)
             // 영문 폰트로 이름을 표시하는 것이 필수이므로, 한글 데이터는 사용하지 않음
             const settingsNames = await getPageSettingsNames(pageId || "")
@@ -114,7 +102,7 @@ export default function NameSection(props: NameSectionProps) {
             // 영문 이름이 없으면 기본값 "GROOM", "BRIDE" 유지
         })()
         return () => { mounted = false }
-    }, [pageId, groomName, brideName, isDevelopment])
+    }, [pageId, isDevelopment])
 
     // 폰트 크기 자동 조정
     const adjustTextSize = (): void => {

@@ -388,8 +388,6 @@ export default function MainSection(props: MainSectionProps) {
           }}
         >
           <NameSection
-            groomName={pageSettings?.groom_name}
-            brideName={pageSettings?.bride_name}
             pageId={pageId}
             style={{ width: '88%' }}
           />
@@ -456,8 +454,6 @@ export default function MainSection(props: MainSectionProps) {
       return (
         <div style={style}>
           <NameSection
-            groomName={pageSettings?.groom_name}
-            brideName={pageSettings?.bride_name}
             pageId={pageId}
             style={{ width: '88%' }}
           />
