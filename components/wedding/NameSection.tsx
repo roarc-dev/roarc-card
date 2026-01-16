@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { motion, useInView } from "framer-motion"
 
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
