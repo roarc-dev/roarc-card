@@ -348,8 +348,8 @@ export default function MainSection(props: MainSectionProps) {
   }, [pageSettings, isLoading, devTypeOverride])
 
   // type에 따라 적절한 컴포넌트 렌더링
-  if (!pageType) {
-    // 로딩 중이거나 pageId가 없는 경우 로딩 텍스트만 표시
+  // 로딩 중이거나 데이터가 없는 경우 로딩 화면 표시
+  if (isLoading || !pageType || !pageSettings) {
     return (
       <div
         style={{
@@ -388,6 +388,8 @@ export default function MainSection(props: MainSectionProps) {
           }}
         >
           <NameSection
+            groomNameEn={pageSettings.groom_name_en}
+            brideNameEn={pageSettings.bride_name_en}
             pageId={pageId}
             style={{ width: '88%' }}
           />
@@ -454,6 +456,8 @@ export default function MainSection(props: MainSectionProps) {
       return (
         <div style={style}>
           <NameSection
+            groomNameEn={pageSettings.groom_name_en}
+            brideNameEn={pageSettings.bride_name_en}
             pageId={pageId}
             style={{ width: '88%' }}
           />
