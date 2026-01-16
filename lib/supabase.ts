@@ -5,15 +5,24 @@ import { cache } from 'react'
 const defaultUrl = 'https://wedding-admin-proxy.vercel.app'
 
 // 환경 변수 확인 (서버와 클라이언트 모두)
-const envProxyUrl = 
-  process.env.NEXT_PUBLIC_PROXY_URL || 
-  process.env.PROXY_URL || 
+const envProxyUrl =
+  process.env.NEXT_PUBLIC_PROXY_URL ||
+  process.env.PROXY_URL ||
   defaultUrl
 
 // URL 유효성 검증 및 정규화
 let PROXY_BASE_URL = envProxyUrl.trim()
+
+// https://를 http://로 시작하지 않는 경우 기본값 사용
 if (!PROXY_BASE_URL.startsWith('http://') && !PROXY_BASE_URL.startsWith('https://')) {
-  console.warn('[supabase.ts] Invalid PROXY_BASE_URL format, using default:', PROXY_BASE_URL)
+  console.warn('[supabase.ts] Invalid PROXY_BASE_URL format (must start with http:// or https://):', PROXY_BASE_URL)
+  console.warn('[supabase.ts] Using default URL instead')
+  PROXY_BASE_URL = defaultUrl
+}
+
+// 추가 안전 검증: URL이 여전히 유효하지 않으면 강제로 기본값 사용
+if (!PROXY_BASE_URL.startsWith('http://') && !PROXY_BASE_URL.startsWith('https://')) {
+  console.error('[supabase.ts] CRITICAL: PROXY_BASE_URL is still invalid after fallback, forcing default')
   PROXY_BASE_URL = defaultUrl
 }
 
