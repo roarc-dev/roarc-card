@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react"
 import Image from 'next/image'
 import { motion, AnimatePresence } from "framer-motion"
 import { PROXY_BASE_URL } from '@/lib/supabase'
+import { usePageSettings, useLocationInfo } from '@/lib/hooks/usePageSettings'
 
 // Typography 폰트 스택 (typography.js에서 가져온 값들)
 const FONT_STACKS = {
@@ -77,43 +78,6 @@ const NAVER_MARKER_SVG = `
 const DEFAULT_MARKER_SVG = `data:image/svg+xml;base64,${encodeSvgToBase64(NAVER_MARKER_SVG)}`
 
 // API 함수들
-async function getLocationSettings(pageId: string): Promise<LocationSettings> {
-    if (!pageId)
-        return {
-            venue_name_kr: "",
-            venue_address: "",
-            transport_location_name: "",
-        }
-    try {
-        const response = await fetch(
-            `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-            { method: "GET", headers: { "Content-Type": "application/json" } }
-        )
-        if (!response.ok)
-            return {
-                venue_name_kr: "",
-                venue_address: "",
-                transport_location_name: "",
-            }
-        const result = await response.json()
-        if (result && result.success && result.data) {
-            return {
-                venue_name_kr: result.data.venue_name_kr || "",
-                venue_address: result.data.venue_address || "",
-                transport_location_name:
-                    result.data.transport_location_name || "",
-            }
-        }
-    } catch (_) {
-        return {
-            venue_name_kr: "",
-            venue_address: "",
-            transport_location_name: "",
-        }
-    }
-    return { venue_name_kr: "", venue_address: "", transport_location_name: "" }
-}
-
 async function getMapConfig(): Promise<{
     naverClientId: string
     tmapApiKey: string
@@ -142,27 +106,6 @@ async function getMapConfig(): Promise<{
         console.error('Map config API 호출 중 에러:', error)
         return { naverClientId: "", tmapApiKey: "" }
     }
-}
-
-async function getPageCoordinates(pageId: string): Promise<Coordinates | null> {
-    if (!pageId) return null
-    try {
-        const response = await fetch(
-            `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-            { method: "GET", headers: { "Content-Type": "application/json" } }
-        )
-        if (!response.ok) return null
-        const result = await response.json()
-        if (result && result.success && result.data) {
-            const data = result.data
-            if (data.venue_lat && data.venue_lng) {
-                return { lat: data.venue_lat, lng: data.venue_lng }
-            }
-        }
-    } catch (_) {
-        return null
-    }
-    return null
 }
 
 async function getTransportDetails(pageId: string): Promise<TransportItem[]> {
@@ -363,6 +306,10 @@ export default function LocationUnified({
     pageId = "",
     style,
 }: LocationUnifiedProps) {
+    // SWR로 데이터 가져오기
+    const { pageSettings, isLoading: pageSettingsLoading } = usePageSettings(pageId)
+    const { locationInfo, isLoading: locationLoading } = useLocationInfo(pageId)
+
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
     // 폰트 패밀리 설정 (typography.js에서 가져온 폰트 스택 사용)
@@ -374,17 +321,65 @@ export default function LocationUnified({
     const backgroundColor = style?.backgroundColor as string | undefined
     const buttonBackgroundColor = backgroundColor === '#fafafa' ? '#f0f0f0' : '#f5f5f5'
 
-    // 통합 상태 관리
-    const [locationSettings, setLocationSettings] = useState<LocationSettings>({
-        venue_name_kr: "",
-        venue_address: "",
-        transport_location_name: "",
-    })
-    const [pageType, setPageType] = useState<string>("")
-    const [coordinates, setCoordinates] = useState<Coordinates | null>(null)
+    // 로컬 개발에서는 더미 데이터 사용
+    const isDevelopment = process.env.NODE_ENV === 'development'
+
+    // 개발 모드 더미 데이터
+    const dummyLocationSettings: LocationSettings = useMemo(() => ({
+        venue_name_kr: "결혼식장",
+        venue_address: "서울특별시 강남구 테헤란로 123",
+        transport_location_name: "강남역",
+    }), [])
+
+    const dummyCoordinates: Coordinates = useMemo(() => ({
+        lat: 37.5665,
+        lng: 126.9780,
+    }), [])
+
+    const dummyTransportItems: TransportItem[] = useMemo(() => [
+        {
+            title: "지하철",
+            description: "강남역 2호선 하차\n3번 출구 도보 5분",
+            display_order: 1,
+        },
+        {
+            title: "버스",
+            description: "강남역 정류장 하차\n간선버스 123, 456번",
+            display_order: 2,
+        },
+    ], [])
+
+    // SWR 데이터에서 필요한 값 추출
+    const locationSettings = useMemo(() => {
+        if (isDevelopment) {
+            return dummyLocationSettings
+        }
+        // PageSettings 타입에는 venue_name (venue_name_kr 아님)
+        return {
+            venue_name_kr: (pageSettings as any)?.venue_name_kr || pageSettings?.venue_name || "",
+            venue_address: pageSettings?.venue_address || "",
+            transport_location_name: (pageSettings as any)?.transport_location_name || "",
+        }
+    }, [isDevelopment, dummyLocationSettings, pageSettings])
+
+    const coordinates = useMemo(() => {
+        if (isDevelopment) {
+            return dummyCoordinates
+        }
+        if (pageSettings?.venue_lat && pageSettings?.venue_lng) {
+            return { lat: pageSettings.venue_lat, lng: pageSettings.venue_lng }
+        }
+        return null
+    }, [isDevelopment, dummyCoordinates, pageSettings])
+
+    const pageType = useMemo(() => {
+        if (isDevelopment) return ""
+        return pageSettings?.type || ""
+    }, [isDevelopment, pageSettings])
+
+    // Map config and transport details - 별도 endpoint라서 수동 fetch 유지
     const [transportItems, setTransportItems] = useState<TransportItem[]>([])
     const [naverClientId, setNaverClientId] = useState("")
-    const [isLoading, setIsLoading] = useState(true)
     const [tmapAppKey, setTmapAppKey] = useState("")
     const [showCopyMessage, setShowCopyMessage] = useState(false)
 
@@ -393,101 +388,44 @@ export default function LocationUnified({
     const mapInstance = useRef<any>(null)
     const markerInstance = useRef<any>(null)
 
-    // 로컬 개발에서는 더미 데이터 사용
-    const isDevelopment = process.env.NODE_ENV === 'development'
-
-    // 초기 데이터 로드
+    // Map config와 transport details 로드 (별도 엔드포인트)
     useEffect(() => {
         if (isDevelopment) {
-            // 로컬 개발용 더미 데이터
-            const dummyLocationSettings: LocationSettings = {
-                venue_name_kr: "결혼식장",
-                venue_address: "서울특별시 강남구 테헤란로 123",
-                transport_location_name: "강남역",
-            }
-            const dummyCoordinates: Coordinates = {
-                lat: 37.5665,
-                lng: 126.9780,
-            }
-            const dummyTransportItems: TransportItem[] = [
-                {
-                    title: "지하철",
-                    description: "강남역 2호선 하차\n3번 출구 도보 5분",
-                    display_order: 1,
-                },
-                {
-                    title: "버스",
-                    description: "강남역 정류장 하차\n간선버스 123, 456번",
-                    display_order: 2,
-                },
-            ]
-            setLocationSettings(dummyLocationSettings)
-            setPageType("") // 로컬 개발에서는 기본값 사용
-            setCoordinates(dummyCoordinates)
             setTransportItems(dummyTransportItems)
             setNaverClientId("")
             setTmapAppKey("")
-            setIsLoading(false)
             return
         }
 
         let mounted = true
         ;(async () => {
-            setIsLoading(true)
             try {
-                const [settings, coords, transport, config, pageSettingsRes] = await Promise.all(
-                    [
-                        getLocationSettings(pageId),
-                        getPageCoordinates(pageId),
-                        getTransportDetails(pageId),
-                        getMapConfig(),
-                        fetch(`${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`, {
-                            method: "GET",
-                            headers: { "Content-Type": "application/json" }
-                        }),
-                    ]
-                )
+                const [transport, config] = await Promise.all([
+                    getTransportDetails(pageId),
+                    getMapConfig(),
+                ])
 
                 if (!mounted) return
 
-                // pageSettings에서 type 가져오기
-                let pageTypeValue = ""
-                try {
-                    if (pageSettingsRes.ok) {
-                        const pageSettingsResult = await pageSettingsRes.json()
-                        if (pageSettingsResult?.success && pageSettingsResult?.data) {
-                            pageTypeValue = pageSettingsResult.data.type || ""
-                        }
-                    }
-                } catch (error) {
-                    console.warn('[LocationUnified] pageSettings type 조회 실패:', error)
-                }
-
                 console.log('[LocationUnified] 데이터 로드 완료:', {
-                    settings,
-                    coords,
                     transportCount: transport.length,
                     transportItems: transport,
-                    pageType: pageTypeValue
                 })
 
-                setLocationSettings(settings)
-                setPageType(pageTypeValue)
-                setCoordinates(coords)
                 setTransportItems(transport)
                 setNaverClientId(config.naverClientId)
                 setTmapAppKey(config.tmapApiKey || "")
             } catch (error) {
                 console.error("LocationUnified data load error:", error)
-            } finally {
-                if (mounted) setIsLoading(false)
             }
         })()
 
         return () => {
             mounted = false
         }
-    }, [pageId, isDevelopment])
+    }, [pageId, isDevelopment, dummyTransportItems])
+
+    const isLoading = pageSettingsLoading || locationLoading
 
     // 네이버 지도 초기화
     useEffect(() => {
@@ -710,7 +648,7 @@ export default function LocationUnified({
                         ) : displayLocationName.includes("|") ? (
                             displayLocationName
                                 .split("|")
-                                .map((part, index, array) => (
+                                .map((part: string, index: number, array: string[]) => (
                                     <React.Fragment key={index}>
                                         <span
                                             style={{
