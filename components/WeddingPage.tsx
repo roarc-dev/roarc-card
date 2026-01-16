@@ -1,26 +1,65 @@
 'use client'
 
-import React, { useMemo, useEffect, useState } from 'react'
+import React, { useMemo, useEffect, useState, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import type { PageSettings } from '@/lib/supabase'
 import { ComponentType, DEFAULT_COMPONENT_ORDER } from '@/lib/components-registry'
 import { assignBackgroundColors, postProcessGalleryColors, getButtonColor, type BackgroundColor } from '@/lib/background-colors'
 // @ts-ignore
 import typography from "@/lib/typography.js"
 
-// 컴포넌트 imports
+// 즉시 필요한 컴포넌트들 (정적 import)
 import BGM from '@/components/wedding/BGM'
-import MainSection from '@/components/wedding/MainSection'
 import WeddingInvitationSection from '@/components/wedding/WeddingInvitationSection'
 import CalendarSection from '@/components/wedding/CalendarSection'
-import LocationUnified from '@/components/wedding/LocationUnified'
-import UnifiedGalleryComplete from '@/components/wedding/UnifiedGalleryComplete'
-import CommentBoard from '@/components/wedding/CommentBoard'
-import Account from '@/components/wedding/Account'
 import Info from '@/components/wedding/Info'
-import RSVPClient from '@/components/wedding/RSVPClient'
 import KakaoShare from '@/components/wedding/KakaoShare'
 import { PlaceholderComponent } from '@/components/wedding'
-import MobileCoverAnimation from '@/components/wedding/mobileCover'
+
+// 무거운 컴포넌트들 (Dynamic import - 코드 스플리팅)
+const MainSection = dynamic(() => import('@/components/wedding/MainSection'), {
+  loading: () => <div style={{ width: '100%', height: '100vh', background: '#fff' }} />,
+  ssr: true
+})
+
+const LocationUnified = dynamic(() => import('@/components/wedding/LocationUnified'), {
+  loading: () => <div style={{ width: '100%', minHeight: '400px', background: '#fafafa' }} />,
+  ssr: true
+})
+
+const UnifiedGalleryComplete = dynamic(() => import('@/components/wedding/UnifiedGalleryComplete'), {
+  loading: () => <div style={{ width: '100%', minHeight: '300px', background: '#f5f5f5' }} />,
+  ssr: false // 갤러리는 클라이언트에서만 렌더링
+})
+
+const CommentBoard = dynamic(() => import('@/components/wedding/CommentBoard'), {
+  loading: () => <div style={{ width: '100%', minHeight: '400px', background: '#fff' }} />,
+  ssr: false // 댓글은 클라이언트에서만 필요
+})
+
+const Account = dynamic(() => import('@/components/wedding/Account'), {
+  loading: () => <div style={{ width: '100%', minHeight: '300px', background: '#f5f5f5' }} />,
+  ssr: true
+})
+
+const RSVPClient = dynamic(() => import('@/components/wedding/RSVPClient'), {
+  loading: () => <div style={{ width: '100%', minHeight: '350px', background: '#fafafa' }} />,
+  ssr: false // RSVP 폼은 클라이언트에서만 필요
+})
+
+const MobileCoverAnimation = dynamic(() => import('@/components/wedding/mobileCover'), {
+  loading: () => null,
+  ssr: false // 애니메이션은 클라이언트에서만
+})
+
+// 정적 footer 스타일 (재사용)
+const FOOTER_TEXT_STYLE = {
+  fontSize: '12px',
+  color: '#BABABA',
+  letterSpacing: '0em',
+  fontFamily: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple SD Gothic Neo, Noto Sans KR, "Apple Color Emoji", "Segoe UI Emoji"',
+  fontWeight: 400,
+} as const
 
 interface WeddingPageProps {
   pageSettings: PageSettings
@@ -166,15 +205,14 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
 
     console.log('[WeddingPage] component_order (final normalized):', normalized)
     return normalized
-  }, [pageSettings.component_order])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(pageSettings.component_order)])
 
   // 동적 배경색 관리
   const [componentBackgrounds, setComponentBackgrounds] = useState<Record<string, BackgroundColor>>({})
 
-  // 갤러리 타입 추적
-  const galleryType = useMemo(() => {
-    return (pageSettings.gallery_type as 'slide' | 'thumbnail' | undefined) || 'thumbnail'
-  }, [pageSettings.gallery_type])
+  // 갤러리 타입 추적 (안정적인 값으로 최적화)
+  const galleryType = (pageSettings.gallery_type as 'slide' | 'thumbnail' | undefined) || 'thumbnail'
 
   // componentOrder 또는 galleryType 변경 시 배경색 재계산
   useEffect(() => {
@@ -184,10 +222,11 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
       setComponentBackgrounds(finalBackgrounds)
       console.log('[WeddingPage] 배경색 할당 완료:', finalBackgrounds)
     }
-  }, [componentOrder, galleryType])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [componentOrder.join(','), galleryType])
 
-  // 컴포넌트 렌더링 함수
-  const renderComponent = (type: ComponentType, index: number) => {
+  // 컴포넌트 렌더링 함수 (메모이제이션으로 불필요한 재생성 방지)
+  const renderComponent = useCallback((type: ComponentType, index: number) => {
     // 동적 배경색 가져오기
     const backgroundColor = componentBackgrounds[type]
     // 배경색에 따른 버튼 색상 계산
@@ -313,7 +352,7 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
       default:
         return null
     }
-  }
+  }, [componentBackgrounds, pageId, pageSettings.user_url, pageSettings.contact])
 
   // 개발 모드에서 URL 쿼리 파라미터로 type 오버라이드 (클라이언트 사이드에서만)
   const [devTypeOverride, setDevTypeOverride] = useState<'papillon' | 'eternal' | 'fiore' | 'mobile' | null>(null)
@@ -377,20 +416,14 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
         textAlign: 'center',
         background: componentBackgrounds['KakaoShare'] || '#F5F5F5',
       }}>
-        <img src="https://cdn.roarc.kr/framer/logo/roarc_logotype.svg" alt="roarc" 
-            style={{ 
-                width: 'auto', 
-                height: '10px', 
-                marginBottom: '10px', 
+        <img src="https://cdn.roarc.kr/framer/logo/roarc_logotype.svg" alt="roarc"
+            style={{
+                width: 'auto',
+                height: '10px',
+                marginBottom: '10px',
                 opacity: 0.3,
             }} />
-        <div style={{
-          fontSize: '12px',
-          color: '#BABABA',
-          letterSpacing: '0em',
-          fontFamily: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple SD Gothic Neo, Noto Sans KR, "Apple Color Emoji", "Segoe UI Emoji"',
-          fontWeight: 400,
-        }}>
+        <div style={FOOTER_TEXT_STYLE}>
           © roarc. all rights reseved.
         </div>
       </footer>

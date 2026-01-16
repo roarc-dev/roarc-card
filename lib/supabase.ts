@@ -1,3 +1,5 @@
+import { cache } from 'react'
+
 // 프록시 서버 URL (기존 API와 연동) - Supabase 직접 연결 대신 PROXY 사용
 // 서버와 클라이언트 모두에서 접근 가능하도록 next.config.js의 env 설정 사용
 const defaultUrl = 'https://wedding-admin-proxy.vercel.app'
@@ -59,14 +61,15 @@ export interface PageSettings {
 
 /**
  * user_url로 페이지 설정 조회
- * 
+ *
  * - user_url과 wedding_date가 모두 일치해야만 조회 성공
  * - 보안: dateSegment 필수 (같은 user_url을 가진 다른 사용자의 페이지 접근 방지)
- * 
+ * - React.cache()로 감싸져 동일 요청 렌더링 중 자동 중복 제거
+ *
  * @param userUrl - user_url 또는 page_id
  * @param dateSegment - YYMMDD 형식의 날짜 세그먼트 (필수, wedding_date 검증에 사용)
  */
-export async function getPageSettingsByUserUrl(
+export const getPageSettingsByUserUrl = cache(async function(
   userUrl: string,
   dateSegment: string
 ): Promise<PageSettings | null> {
@@ -136,12 +139,13 @@ export async function getPageSettingsByUserUrl(
     console.error('[getPageSettingsByUserUrl] Error:', error)
     return null
   }
-}
+})
 
 /**
  * page_id로 페이지 설정 조회
+ * - React.cache()로 감싸져 동일 요청 렌더링 중 자동 중복 제거
  */
-export async function getPageSettingsByPageId(pageId: string): Promise<PageSettings | null> {
+export const getPageSettingsByPageId = cache(async function(pageId: string): Promise<PageSettings | null> {
   const url = `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`
   
   // 디버깅 로그
@@ -184,7 +188,7 @@ export async function getPageSettingsByPageId(pageId: string): Promise<PageSetti
     }
     return null
   }
-}
+})
 
 /**
  * wedding_date("YYYY-MM-DD") -> "YYMMDD" (예: "2026-12-21" => "261221")
