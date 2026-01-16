@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { PROXY_BASE_URL } from '@/lib/supabase'
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 
 // Framer 단독 사용을 위해 로컬 토큰/프리미티브 정의
 const theme = {
@@ -395,15 +396,27 @@ function Info({
     pageId?: string
     style?: React.CSSProperties
 }) {
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings } = usePageSettings(pageId)
+
     const [infoItems, setInfoItems] = useState<InfoItem[]>([])
     const [loading, setLoading] = useState(false)
-    const [pageType, setPageType] = useState("")
+
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
     // 폰트 패밀리 설정 (typography.js에서 가져온 폰트 스택 사용)
     const pretendardFontFamily = FONT_STACKS.pretendardVariable
     const p22FontFamily = FONT_STACKS.p22
     const goldenbookFontFamily = FONT_STACKS.goldenbook
+
+    // 로컬 개발에서는 더미 데이터 사용
+    const isDevelopment = process.env.NODE_ENV === 'development'
+
+    // pageType을 SWR 데이터에서 가져오기
+    const pageType = useMemo(() => {
+        if (isDevelopment) return "default"
+        return pageSettings?.type || ""
+    }, [isDevelopment, pageSettings])
 
     const titleFontFamily = useMemo(() => {
         const normalizedType = (pageType || "").toLowerCase().trim()
@@ -422,9 +435,6 @@ function Info({
         // papillon 또는 기본값
         return "0.05em"
     }, [pageType])
-
-    // 로컬 개발에서는 더미 데이터 사용
-    const isDevelopment = process.env.NODE_ENV === 'development'
 
     // info_item 테이블에서 데이터 가져오기
     const getInfoItems = useCallback(async (pageId: string): Promise<InfoItem[]> => {
@@ -516,7 +526,6 @@ function Info({
                 }
             ]
             setInfoItems(dummyInfoItems)
-            setPageType("default")
             return
         }
 
@@ -542,30 +551,6 @@ function Info({
             mounted = false
         }
     }, [pageId, isDevelopment, getInfoItems])
-
-    useEffect(() => {
-        if (isDevelopment) return
-
-        let cancelled = false
-        async function fetchPageType() {
-            if (!pageId) return
-            try {
-                const url = `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`
-                const res = await fetch(url, { cache: "no-store" })
-                if (!res.ok) return
-                const json = (await res.json()) as PageSettingsResp
-                const fetchedType =
-                    (json && json.data && json.data.type) || json?.type || ""
-                if (!cancelled) {
-                    setPageType(fetchedType)
-                }
-            } catch (_) {}
-        }
-        fetchPageType()
-        return () => {
-            cancelled = true
-        }
-    }, [pageId, isDevelopment])
 
     // 슬라이드 상태 관리
     const [currentIndex, setCurrentIndex] = useState(0)
