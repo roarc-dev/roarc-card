@@ -2,10 +2,10 @@
 
 import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { addPropertyControls, ControlType } from 'framer'
 import { motion } from 'framer-motion'
-
-import { PROXY_BASE_URL } from '@/lib/supabase'
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 
 type BGMProps = {
     pageId: string // page_id로 음원 정보를 가져옴
@@ -15,13 +15,15 @@ type BGMProps = {
 export default function BGM(props: BGMProps) {
     const { pageId, style } = props
 
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings, isLoading: swrLoading } = usePageSettings(pageId)
+
     // 고정된 아이콘 URL
     const playIcon = 'https://cdn.roarc.kr/framer/bgmIcon/bgmPlay.png'
     const pauseIcon = 'https://cdn.roarc.kr/framer/bgmIcon/bgmPause.png'
     const audioRef = useRef<HTMLAudioElement>(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [audioUrl, setAudioUrl] = useState<string>('')
-    const [loading, setLoading] = useState(true)
     const [supabaseAutoplay, setSupabaseAutoplay] = useState<boolean>(false)
     const [supabaseVolume, setSupabaseVolume] = useState<number>(10)
     const [bgmType, setBgmType] = useState<string>('')
@@ -30,6 +32,8 @@ export default function BGM(props: BGMProps) {
     const [notificationPhase, setNotificationPhase] = useState<
         'entering' | 'waiting' | 'exiting'
     >('entering')
+
+    const loading = swrLoading
 
     // Pretendard 폰트 동적 로드 (원본 동작 유지)
     useEffect(() => {
@@ -44,138 +48,79 @@ export default function BGM(props: BGMProps) {
         }
     }, [])
 
-    // page_id로 R2 음원 정보 및 Supabase 설정 가져오기
+    // pageSettings에서 BGM 설정 추출
     useEffect(() => {
-        if (!pageId) {
-            console.log(`[BGM-Supabase] pageId가 없음:`, pageId)
+        if (!pageSettings) {
+            console.log(`[BGM-Supabase] pageSettings가 없음`)
             return
         }
 
-        const fetchAudio = async () => {
-            try {
-                setLoading(true)
-                console.log(
-                    `[BGM-Supabase] R2 음원 및 Supabase 설정 로딩 시작: pageId="${pageId}" (타입: ${typeof pageId})`
-                )
+        console.log(`[BGM-Supabase] 페이지 설정 데이터:`, pageSettings)
 
-                const apiUrl = `${PROXY_BASE_URL}/api/page-settings?pageId=${pageId}`
-                console.log(`[BGM-Supabase] API 호출 URL:`, apiUrl)
+        const data = pageSettings as any
 
-                const response = await fetch(apiUrl)
-                console.log(`[BGM-Supabase] API 응답 상태: ${response.status}`)
+        // BGM 활성화 설정 확인
+        const bgmEnabledFromApi = data.bgm !== 'off'
+        setBgmEnabled(bgmEnabledFromApi)
+        console.log(`[BGM-Supabase] BGM 활성화 설정: ${bgmEnabledFromApi}`)
 
-                if (response.ok) {
-                    const result = await response.json()
-                    console.log(`[BGM-Supabase] API 전체 응답:`, result)
+        if (bgmEnabledFromApi && data.bgm_url && data.bgm_url.trim() !== '') {
+            setAudioUrl(data.bgm_url.trim())
+            console.log(`[BGM-Supabase] R2 음원 URL 설정: ${data.bgm_url}`)
+            console.log(`[BGM-Supabase] BGM 타입: ${data.type}`)
 
-                    // API 응답 구조 확인 (result.data 또는 result 직접)
-                    const data = result.success ? result.data : result
-                    console.log(`[BGM-Supabase] 페이지 설정 데이터:`, data)
+            // BGM 타입 설정
+            if (data.type) {
+                setBgmType(data.type)
+            }
 
-                    // BGM 활성화 설정 확인
-                    const bgmEnabledFromApi = data.bgm !== 'off'
-                    setBgmEnabled(bgmEnabledFromApi)
-                    console.log(
-                        `[BGM-Supabase] BGM 활성화 설정: ${bgmEnabledFromApi}`
-                    )
+            // 배경음악 준비 알림 표시
+            if (bgmEnabledFromApi) {
+                setShowNotification(true)
+            }
 
-                    if (
-                        bgmEnabledFromApi &&
-                        data.bgm_url &&
-                        data.bgm_url.trim() !== ''
-                    ) {
-                        setAudioUrl(data.bgm_url.trim())
-                        console.log(
-                            `[BGM-Supabase] R2 음원 URL 설정: ${data.bgm_url}`
-                        )
-                        console.log(`[BGM-Supabase] BGM 타입: ${data.type}`)
+            // Supabase bgm_autoplay 설정 적용
+            if (data.bgm_autoplay !== undefined) {
+                setSupabaseAutoplay(data.bgm_autoplay)
+                console.log(`[BGM-Supabase] Supabase 자동재생 설정: ${data.bgm_autoplay}`)
+            }
 
-                        // BGM 타입 설정 (page_settings.type에서 읽어옴)
-                        if (data.type) {
-                            setBgmType(data.type)
-                        }
+            // Supabase bgm_vol 설정 적용
+            if (data.bgm_vol !== undefined && data.bgm_vol >= 1 && data.bgm_vol <= 10) {
+                setSupabaseVolume(data.bgm_vol)
+                console.log(`[BGM-Supabase] Supabase 볼륨 설정: ${data.bgm_vol}`)
+            } else {
+                console.log(`[BGM-Supabase] bgm_vol 값이 유효하지 않음: ${data.bgm_vol}, 기본값 10 사용`)
+                setSupabaseVolume(10)
+            }
+        } else {
+            console.log(`[BGM-Supabase] bgm_url이 없거나 비어있거나 BGM이 비활성화됨`)
 
-                        // 배경음악 준비 알림 표시 (BGM이 활성화된 경우만)
-                        if (bgmEnabledFromApi) {
-                            setShowNotification(true)
-                        }
+            // BGM 타입은 URL 유무와 관계없이 설정
+            if (data.type) {
+                setBgmType(data.type)
+                console.log(`[BGM-Supabase] BGM 타입 설정: ${data.type}`)
+            }
 
-                        // Supabase bgm_autoplay 설정 적용
-                        if (data.bgm_autoplay !== undefined) {
-                            setSupabaseAutoplay(data.bgm_autoplay)
-                            console.log(
-                                `[BGM-Supabase] Supabase 자동재생 설정: ${data.bgm_autoplay}`
-                            )
-                        }
+            console.log(`[BGM-Supabase] 전체 BGM 관련 필드:`, {
+                bgm: data?.bgm,
+                bgm_url: data?.bgm_url,
+                bgm_type: data?.bgm_type,
+                bgm_autoplay: data?.bgm_autoplay,
+                bgm_vol: data?.bgm_vol,
+                type: data?.type,
+            })
 
-                        // Supabase bgm_vol 설정 적용
-                        if (
-                            data.bgm_vol !== undefined &&
-                            data.bgm_vol >= 1 &&
-                            data.bgm_vol <= 10
-                        ) {
-                            setSupabaseVolume(data.bgm_vol)
-                            console.log(
-                                `[BGM-Supabase] Supabase 볼륨 설정: ${data.bgm_vol}`
-                            )
-                        } else {
-                            console.log(
-                                `[BGM-Supabase] bgm_vol 값이 유효하지 않음: ${data.bgm_vol}, 기본값 10 사용`
-                            )
-                            setSupabaseVolume(10)
-                        }
-                    } else {
-                        console.log(
-                            `[BGM-Supabase] bgm_url이 없거나 비어있거나 BGM이 비활성화됨`
-                        )
-
-                        // BGM 타입은 URL 유무와 관계없이 설정 (papillon 높이 유지용)
-                        if (data.type) {
-                            setBgmType(data.type)
-                            console.log(`[BGM-Supabase] BGM 타입 설정: ${data.type}`)
-                        }
-
-                        console.log(`[BGM-Supabase] 전체 BGM 관련 필드:`, {
-                            bgm: data?.bgm,
-                            bgm_url: data?.bgm_url,
-                            bgm_type: data?.bgm_type,
-                            bgm_autoplay: data?.bgm_autoplay,
-                            bgm_vol: data?.bgm_vol,
-                            type: data?.type,
-                        })
-
-                        // 테스트용: pageId가 'test'인 경우 테스트 음원 사용 (bgm이 off가 아니면)
-                        if (pageId === 'test' && bgmEnabledFromApi) {
-                            // 실제 동작하는 테스트 음원 (공개 도메인)
-                            const testUrl =
-                                'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'
-                            console.log(
-                                `[BGM-Supabase] 테스트 모드: 테스트 음원 사용 - ${testUrl}`
-                            )
-                            setAudioUrl(testUrl)
-                            setSupabaseAutoplay(true)
-                            setSupabaseVolume(8)
-                        }
-                    }
-                } else {
-                    const errorText = await response.text()
-                    console.error(
-                        `[BGM-Supabase] 페이지 설정 로드 실패: ${response.status}`,
-                        errorText
-                    )
-                }
-            } catch (error) {
-                console.error(
-                    '[BGM-Supabase] R2 음원 및 Supabase 설정 로딩 실패:',
-                    error
-                )
-            } finally {
-                setLoading(false)
+            // 테스트용: pageId가 'test'인 경우 테스트 음원 사용
+            if (pageId === 'test' && bgmEnabledFromApi) {
+                const testUrl = 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'
+                console.log(`[BGM-Supabase] 테스트 모드: 테스트 음원 사용 - ${testUrl}`)
+                setAudioUrl(testUrl)
+                setSupabaseAutoplay(true)
+                setSupabaseVolume(8)
             }
         }
-
-        void fetchAudio()
-    }, [pageId])
+    }, [pageSettings, pageId])
 
     // Supabase bgm_vol 설정에 따른 볼륨 조절: 1~10 단계, 1은 10%, 10은 100%
     useEffect(() => {
@@ -520,10 +465,12 @@ export default function BGM(props: BGMProps) {
                             height: '24px',
                         }}
                     >
-                        <img
+                        <Image
                             src={isPlaying ? pauseIcon : playIcon}
                             alt={isPlaying ? '일시정지' : '재생'}
-                            style={{ width: '22px', height: '22px' }}
+                            width={22}
+                            height={22}
+                            loading="lazy"
                         />
                     </motion.button>
                 )}

@@ -1,36 +1,13 @@
 'use client'
 
-import React, { useEffect, useState } from "react"
-import { PROXY_BASE_URL } from '@/lib/supabase'
+import React, { useMemo } from "react"
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 
 interface PageSettings {
     page_id: string
     photo_section_image_url?: string | null
     photo_section_image_public_url?: string | null
     updated_at?: string | null
-}
-
-async function getPageSettingsByPageId(
-    pageId: string
-): Promise<PageSettings | null> {
-    try {
-        const response = await fetch(
-            `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-            {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-            }
-        )
-        if (!response.ok) {
-            return null
-        }
-        const result = await response.json()
-        if (result.success && result.data) return result.data as PageSettings
-        return null
-    } catch (error) {
-        console.error("페이지 설정 조회 실패:", error)
-        return null
-    }
 }
 
 interface EternalMainPhotoProps {
@@ -85,25 +62,21 @@ function buildImageUrlFromSettings(s: PageSettings | null): string | undefined {
 
 export default function EternalMainPhoto(props: EternalMainPhotoProps) {
     const { pageId, style } = props
-    const [settings, setSettings] = useState<PageSettings | null>(null)
 
-    // 페이지 설정 로드 (간소화된 버전)
-    useEffect(() => {
-        let mounted = true
-        async function load() {
-            if (!pageId) {
-                setSettings(null)
-                return
-            }
-            const data = await getPageSettingsByPageId(pageId)
-            if (!mounted) return
-            setSettings(data)
-        }
-        load()
-        return () => {
-            mounted = false
-        }
-    }, [pageId])
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings } = usePageSettings(pageId)
+
+    // pageSettings를 settings로 변환
+    const settings = useMemo(() => {
+        if (!pageSettings) return null
+        const data = pageSettings as any
+        return {
+            page_id: data.page_id || data.id,
+            photo_section_image_url: data.photo_section_image_url,
+            photo_section_image_public_url: data.photo_section_image_public_url,
+            updated_at: data.updated_at,
+        } as PageSettings
+    }, [pageSettings])
 
     const imageUrl = buildImageUrlFromSettings(settings)
 

@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { PROXY_BASE_URL } from '@/lib/supabase'
 // @ts-ignore
 import typography from "@/lib/typography.js"
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 import NameSection from './NameSection'
 import PhotoSectionProxy from './PhotoSectionProxy'
 import EternalNameSection from './EternalNameSection'
@@ -20,29 +21,6 @@ interface PageSettings {
   bride_name?: string
   groom_name_en?: string
   bride_name_en?: string
-}
-
-async function getPageSettingsByPageId(pageId: string): Promise<PageSettings | null> {
-  try {
-    const response = await fetch(
-      `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
-    if (!response.ok) {
-      return null
-    }
-    const result = await response.json()
-    if (result.success && result.data) {
-      return result.data as PageSettings
-    }
-    return null
-  } catch (error) {
-    console.error('[MainSection] 페이지 설정 조회 실패:', error)
-    return null
-  }
 }
 
 interface MainSectionProps {
@@ -211,12 +189,12 @@ function EternalInteractionWrapper({
             bounce: 0,
           }}
         >
-          <img
+          <Image
             src="/images/eternalInteraction.webp"
             alt="Eternal interaction left"
+            fill
+            loading="lazy"
             style={{
-              width: '100%',
-              height: '100%',
               objectFit: 'cover',
               objectPosition: 'center',
             }}
@@ -240,9 +218,12 @@ function EternalInteractionWrapper({
             The Beginning of our Forever
           </div>
           {/* 로고 이미지 레이어 */}
-          <img
+          <Image
             src="/images/roarc-logo.webp"
             alt="Roarc logo"
+            width={80}
+            height={40}
+            loading="lazy"
             style={{
               position: 'absolute',
               top: '210px',
@@ -273,12 +254,12 @@ function EternalInteractionWrapper({
             bounce: 0,
           }}
         >
-          <img
+          <Image
             src="/images/eternalInteraction.webp"
             alt="Eternal interaction right"
+            fill
+            loading="lazy"
             style={{
-              width: '100%',
-              height: '100%',
               objectFit: 'cover',
               objectPosition: 'center',
               transform: 'scaleX(-1)', // 좌우 반전
@@ -303,9 +284,12 @@ function EternalInteractionWrapper({
             The Beginning of our Forever
           </div>
           {/* 로고 이미지 레이어 */}
-          <img
+          <Image
             src="/images/roarc-logo.webp"
             alt="Roarc logo"
+            width={80}
+            height={40}
+            loading="lazy"
             style={{
               position: 'absolute',
               top: '210px',
@@ -324,8 +308,9 @@ function EternalInteractionWrapper({
 
 export default function MainSection(props: MainSectionProps) {
   const { pageId, style } = props
-  const [pageType, setPageType] = useState<'papillon' | 'eternal' | 'fiore' | 'mobile' | null>(null)
-  const [pageSettings, setPageSettings] = useState<PageSettings | null>(null)
+
+  // SWR로 페이지 설정 가져오기
+  const { pageSettings, isLoading } = usePageSettings(pageId)
 
   // Goldenbook 폰트 스택 가져오기
   const goldenbookFontFamily = useMemo(() => {
@@ -336,53 +321,31 @@ export default function MainSection(props: MainSectionProps) {
     }
   }, [])
 
-  // 페이지 설정 로드 및 type 조회
-  useEffect(() => {
-    let mounted = true
-    
-    // 개발 모드에서 URL 쿼리 파라미터로 type 오버라이드 (클라이언트 사이드에서만)
-    const getDevTypeOverride = (): 'papillon' | 'eternal' | 'fiore' | 'mobile' | null => {
-      if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') {
-        return null
-      }
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const overrideType = params.get('type')
-        if (overrideType === 'papillon' || overrideType === 'eternal' || overrideType === 'fiore' || overrideType === 'mobile') {
-          console.log('[MainSection] 개발 모드: type 오버라이드:', overrideType)
-          return overrideType
-        }
-      } catch (error) {
-        console.warn('[MainSection] 쿼리 파라미터 읽기 실패:', error)
-      }
+  // 개발 모드에서 URL 쿼리 파라미터로 type 오버라이드
+  const devTypeOverride = useMemo((): 'papillon' | 'eternal' | 'fiore' | 'mobile' | null => {
+    if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') {
       return null
     }
-    
-    async function load() {
-      if (!pageId) {
-        setPageType(null)
-        setPageSettings(null)
-        return
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const overrideType = params.get('type')
+      if (overrideType === 'papillon' || overrideType === 'eternal' || overrideType === 'fiore' || overrideType === 'mobile') {
+        console.log('[MainSection] 개발 모드: type 오버라이드:', overrideType)
+        return overrideType
       }
-      const data = await getPageSettingsByPageId(pageId)
-      if (!mounted) return
-      if (data) {
-        setPageSettings(data)
-        // 개발 모드에서 쿼리 파라미터로 type 오버라이드
-        const devOverride = getDevTypeOverride()
-        const finalType = devOverride || data.type || 'papillon'
-        setPageType(finalType)
-      } else {
-        // 데이터가 없으면 개발 모드 오버라이드 또는 기본값 'papillon' 사용
-        const devOverride = getDevTypeOverride()
-        setPageType(devOverride || 'papillon')
-      }
+    } catch (error) {
+      console.warn('[MainSection] 쿼리 파라미터 읽기 실패:', error)
     }
-    load()
-    return () => {
-      mounted = false
+    return null
+  }, [])
+
+  // pageType 계산
+  const pageType = useMemo(() => {
+    if (isLoading || !pageSettings) {
+      return devTypeOverride || null
     }
-  }, [pageId])
+    return devTypeOverride || pageSettings.type || 'papillon'
+  }, [pageSettings, isLoading, devTypeOverride])
 
   // type에 따라 적절한 컴포넌트 렌더링
   if (!pageType) {

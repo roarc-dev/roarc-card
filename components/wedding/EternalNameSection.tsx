@@ -1,71 +1,9 @@
 'use client'
 
 import React, { useEffect, useRef, useState, useMemo } from "react"
-import { PROXY_BASE_URL } from '@/lib/supabase'
 // @ts-ignore
 import typography from "@/lib/typography.js"
-
-// API 호출 함수들
-async function getInviteNamesByPageId(pageId: string) {
-    if (!pageId) return { groom_name: "", bride_name: "" }
-    try {
-        const response = await fetch(
-            `${PROXY_BASE_URL}/api/invite?pageId=${encodeURIComponent(pageId)}`,
-            { method: "GET", headers: { "Content-Type": "application/json" } }
-        )
-        if (!response.ok) {
-            return { groom_name: "", bride_name: "" }
-        }
-        const result = await response.json()
-        if (result && result.success && result.data) {
-            return {
-                groom_name: result.data.groom_name || "",
-                bride_name: result.data.bride_name || "",
-            }
-        }
-        return { groom_name: "", bride_name: "" }
-    } catch {
-        return { groom_name: "", bride_name: "" }
-    }
-}
-
-async function getPageSettingsNames(pageId: string) {
-    if (!pageId)
-        return {
-            groom_name_en: "",
-            bride_name_en: "",
-            last_groom_name_en: "",
-            last_bride_name_en: "",
-        }
-    try {
-        const res = await fetch(
-            `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-            { method: "GET", headers: { "Content-Type": "application/json" } }
-        )
-        if (!res.ok)
-            return {
-                groom_name_en: "",
-                bride_name_en: "",
-                last_groom_name_en: "",
-                last_bride_name_en: "",
-            }
-        const json = await res.json()
-        const data = json && json.data ? json.data : {}
-        return {
-            groom_name_en: data.groom_name_en || "",
-            bride_name_en: data.bride_name_en || "",
-            last_groom_name_en: data.last_groom_name_en || "",
-            last_bride_name_en: data.last_bride_name_en || "",
-        }
-    } catch {
-        return {
-            groom_name_en: "",
-            bride_name_en: "",
-            last_groom_name_en: "",
-            last_bride_name_en: "",
-        }
-    }
-}
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 
 interface EternalNameSectionProps {
     groomName?: string
@@ -76,6 +14,9 @@ interface EternalNameSectionProps {
 
 export default function EternalNameSection(props: EternalNameSectionProps) {
     const { groomName = "GROOM NAME", brideName = "BRIDE NAME", pageId, style } = props
+
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings } = usePageSettings(pageId)
 
     // 이름 상태 (props 우선, 없으면 페이지에서 로드)
     const [resolvedGroomName, setResolvedGroomName] = useState(groomName)
@@ -136,56 +77,36 @@ export default function EternalNameSection(props: EternalNameSectionProps) {
         }
     }, [])
 
-    // 페이지에서 신랑/신부 이름 로드 (항상 pageId에서 가져오기)
+    // 페이지 설정에서 신랑/신부 이름 로드
     useEffect(() => {
-        let mounted = true
-        ;(async () => {
-            if (!pageId) {
-                return
-            }
+        if (!pageSettings) return
 
-            // 1) page_settings에서 EN 이름 우선 사용 (항상 last name과 en name 조합)
-            const settingsNames = await getPageSettingsNames(pageId)
-            if (!mounted) return
+        const data = pageSettings as any
 
-            // 신랑 이름: last_groom_name_en + " " + groom_name_en
-            const groomParts: string[] = []
-            if (settingsNames.last_groom_name_en) {
-                groomParts.push(settingsNames.last_groom_name_en.trim())
-            }
-            if (settingsNames.groom_name_en) {
-                groomParts.push(settingsNames.groom_name_en.trim())
-            }
-            if (groomParts.length > 0) {
-                setResolvedGroomName(groomParts.join(" "))
-            }
+        // 신랑 이름: last_groom_name_en + " " + groom_name_en
+        const groomParts: string[] = []
+        if (data.last_groom_name_en) {
+            groomParts.push(data.last_groom_name_en.trim())
+        }
+        if (data.groom_name_en) {
+            groomParts.push(data.groom_name_en.trim())
+        }
+        if (groomParts.length > 0) {
+            setResolvedGroomName(groomParts.join(" "))
+        }
 
-            // 신부 이름: last_bride_name_en + " " + bride_name_en
-            const brideParts: string[] = []
-            if (settingsNames.last_bride_name_en) {
-                brideParts.push(settingsNames.last_bride_name_en.trim())
-            }
-            if (settingsNames.bride_name_en) {
-                brideParts.push(settingsNames.bride_name_en.trim())
-            }
-            if (brideParts.length > 0) {
-                setResolvedBrideName(brideParts.join(" "))
-            }
-
-            // 2) 폴백: invite에서 이름 사용 (last name이 없을 때만)
-            if (groomParts.length === 0 || brideParts.length === 0) {
-                const names = await getInviteNamesByPageId(pageId)
-                if (!mounted) return
-                if (groomParts.length === 0 && names.groom_name) {
-                    setResolvedGroomName(names.groom_name)
-                }
-                if (brideParts.length === 0 && names.bride_name) {
-                    setResolvedBrideName(names.bride_name)
-                }
-            }
-        })()
-        return () => { mounted = false }
-    }, [pageId])
+        // 신부 이름: last_bride_name_en + " " + bride_name_en
+        const brideParts: string[] = []
+        if (data.last_bride_name_en) {
+            brideParts.push(data.last_bride_name_en.trim())
+        }
+        if (data.bride_name_en) {
+            brideParts.push(data.bride_name_en.trim())
+        }
+        if (brideParts.length > 0) {
+            setResolvedBrideName(brideParts.join(" "))
+        }
+    }, [pageSettings])
 
     useEffect(() => {
         adjustTextSize()

@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useEffect, useState, useMemo } from "react"
-import { PROXY_BASE_URL } from '@/lib/supabase'
+import React, { useEffect, useMemo } from "react"
 // @ts-ignore
 import typography from "@/lib/typography.js"
+import { usePageSettings } from '@/lib/hooks/usePageSettings'
 
 interface PageSettings {
     page_id: string
@@ -22,29 +22,6 @@ interface PageSettings {
     photo_section_overlay_color?: "#ffffff" | "#000000" | null
     photo_section_locale?: "en" | "kr" | null
     updated_at?: string | null
-}
-
-async function getPageSettingsByPageId(
-    pageId: string
-): Promise<PageSettings | null> {
-    try {
-        const response = await fetch(
-            `${PROXY_BASE_URL}/api/page-settings?pageId=${encodeURIComponent(pageId)}`,
-            {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-            }
-        )
-        if (!response.ok) {
-            return null
-        }
-        const result = await response.json()
-        if (result.success && result.data) return result.data as PageSettings
-        return null
-    } catch (error) {
-        console.error("페이지 설정 조회 실패:", error)
-        return null
-    }
 }
 
 interface EternalDateVenueProps {
@@ -120,17 +97,42 @@ function getMonthName(monthIndex: number): string {
 }
 
 export default function EternalDateVenue(props: EternalDateVenueProps) {
-    const { 
-        pageId, 
-        style, 
-        fontSize = 32, 
-        lineHeight = 1.0, 
-        fontWeight = 400, 
-        fontColor = "#000", 
-        venueMarginBottom = 8 
+    const {
+        pageId,
+        style,
+        fontSize = 32,
+        lineHeight = 1.0,
+        fontWeight = 400,
+        fontColor = "#000",
+        venueMarginBottom = 8
     } = props
 
-    const [settings, setSettings] = useState<PageSettings | null>(null)
+    // SWR로 페이지 설정 가져오기
+    const { pageSettings } = usePageSettings(pageId)
+
+    // pageSettings를 settings로 변환
+    const settings = useMemo(() => {
+        if (!pageSettings) return null
+        const data = pageSettings as any
+        return {
+            page_id: data.page_id || data.id,
+            groom_name_kr: data.groom_name_kr || data.groom_name,
+            groom_name_en: data.groom_name_en,
+            bride_name_kr: data.bride_name_kr || data.bride_name,
+            bride_name_en: data.bride_name_en,
+            wedding_date: data.wedding_date,
+            wedding_hour: data.wedding_hour,
+            wedding_minute: data.wedding_minute,
+            venue_name: data.venue_name,
+            venue_address: data.venue_address,
+            photo_section_image_url: data.photo_section_image_url,
+            photo_section_image_path: data.photo_section_image_path,
+            photo_section_overlay_position: data.photo_section_overlay_position,
+            photo_section_overlay_color: data.photo_section_overlay_color,
+            photo_section_locale: data.photo_section_locale,
+            updated_at: data.updated_at,
+        } as PageSettings
+    }, [pageSettings])
 
     // Typography 폰트 로딩 (Typekit 포함)
     useEffect(() => {
@@ -157,24 +159,6 @@ export default function EternalDateVenue(props: EternalDateVenueProps) {
             return '"sloop-script-pro", "Sloop Script Pro", sans-serif'
         }
     }, [])
-
-    // 페이지 설정 로드
-    useEffect(() => {
-        let mounted = true
-        async function load() {
-            if (!pageId) {
-                setSettings(null)
-                return
-            }
-            const data = await getPageSettingsByPageId(pageId)
-            if (!mounted) return
-            setSettings(data)
-        }
-        load()
-        return () => {
-            mounted = false
-        }
-    }, [pageId])
 
     // 장소명과 날짜 추출 및 변환
     const venueName = settings?.venue_name

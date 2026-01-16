@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback } from "react"
+import React, { useState, useMemo, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { PROXY_BASE_URL } from '@/lib/supabase'
-import { getPageSettingsByPageId } from "@/lib/supabase"
+import { useAccountInfo, usePageSettings } from '@/lib/hooks/usePageSettings'
 
 // 로컬 UI 토큰/프리미티브 (Framer 친화)
 const theme = {
@@ -34,35 +33,6 @@ const FONT_STACKS = {
     p22: '"P22 Late November", "Pretendard", -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple SD Gothic Neo, Noto Sans KR, "Apple Color Emoji", "Segoe UI Emoji"',
     goldenbook: '"goldenbook", "Goldenbook", serif',
     sloopScriptPro: '"sloop-script-pro", "Sloop Script Pro", cursive, sans-serif',
-}
-
-// 프록시를 통한 안전한 계좌 정보 가져오기
-async function getAccountInfoByPageId(pageId: string) {
-    try {
-        // URL에 타임스탬프를 추가하여 캐시 방지
-        // CORS 정책을 위해 불필요한 헤더 제거 (GET 요청에는 Content-Type, Cache-Control 불필요)
-        const response = await fetch(
-            `${PROXY_BASE_URL}/api/contacts?action=getByPageId&pageId=${pageId}&_t=${Date.now()}`,
-            {
-                method: "GET",
-            }
-        )
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-        }
-
-        const result = await response.json()
-
-        if (result.success) {
-            return result.data
-        } else {
-            throw new Error(result.error || "계좌 정보를 가져올 수 없습니다")
-        }
-    } catch (error) {
-        console.error("계좌 정보 가져오기 실패:", error)
-        throw error
-    }
 }
 
 // 계좌 정보 타입 정의
@@ -123,17 +93,14 @@ const DEFAULT_ACCOUNT_TEXT = `참석이 어려우신 분들을 위해 기재했�
 export default function AccountBtn(props: AccountBtnProps) {
     const { pageId = "default", style, buttonColor } = props
 
+    // SWR로 데이터 가져오기
+    const { accountInfo: accountInfoData, isLoading: accountLoading, isError: accountError } = useAccountInfo(pageId)
+    const { pageSettings, isLoading: settingsLoading } = usePageSettings(pageId)
+
     const [groomViewState, setGroomViewState] = useState<ViewState>("closed")
     const [brideViewState, setBrideViewState] = useState<ViewState>("closed")
-    const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState("")
     const [copyMessage, setCopyMessage] = useState("")
     const [showCopyMessage, setShowCopyMessage] = useState(false)
-    const [accountText, setAccountText] =
-        useState<string>(DEFAULT_ACCOUNT_TEXT)
-    const [isAccountTextDisabled, setIsAccountTextDisabled] =
-        useState<boolean>(false)
 
     // Typography 폰트 로딩 - 페이지 레벨에서 처리됨
 
@@ -143,100 +110,67 @@ export default function AccountBtn(props: AccountBtnProps) {
     // 로컬 개발에서는 더미 데이터 사용
     const isDevelopment = process.env.NODE_ENV === 'development'
 
-    // 계좌 정보 로드
-    const loadAccountInfo = useCallback(async () => {
+    // 개발 모드 더미 데이터
+    const dummyAccountInfo: AccountInfo = useMemo(() => ({
+        page_id: 'taehohoho',
+        groom_name: '김철수',
+        groom_phone: '010-1234-5678',
+        groom_account: '123-456-789012',
+        groom_bank: '국민은행',
+        groom_bank_name: '김철수',
+        groom_father_name: '김아빠',
+        groom_father_phone: '010-9876-5432',
+        groom_father_account: '987-654-321098',
+        groom_father_bank: '신한은행',
+        groom_father_bank_name: '김아빠',
+        groom_mother_name: '김엄마',
+        groom_mother_phone: '010-1111-2222',
+        groom_mother_account: '111-222-333444',
+        groom_mother_bank: '하나은행',
+        groom_mother_bank_name: '김엄마',
+        bride_name: '이영희',
+        bride_phone: '010-5555-6666',
+        bride_account: '456-789-123456',
+        bride_bank: '우리은행',
+        bride_bank_name: '이영희',
+        bride_father_name: '이아빠',
+        bride_father_phone: '010-7777-8888',
+        bride_father_account: '777-888-999000',
+        bride_father_bank: '농협',
+        bride_father_bank_name: '이아빠',
+        bride_mother_name: '이엄마',
+        bride_mother_phone: '010-3333-4444',
+        bride_mother_account: '321-654-987654',
+        bride_mother_bank: '하나은행',
+        bride_mother_bank_name: '이엄마',
+    }), [])
+
+    // 계좌 정보 처리 (개발 모드는 더미 데이터, 아니면 SWR 데이터)
+    const accountInfo = useMemo(() => {
         if (isDevelopment) {
-            // 로컬 개발용 더미 데이터
-            const dummyAccountInfo: AccountInfo = {
-                page_id: 'taehohoho',
-                groom_name: '김철수',
-                groom_phone: '010-1234-5678',
-                groom_account: '123-456-789012',
-                groom_bank: '국민은행',
-                groom_bank_name: '김철수',
-                groom_father_name: '김아빠',
-                groom_father_phone: '010-9876-5432',
-                groom_father_account: '987-654-321098',
-                groom_father_bank: '신한은행',
-                groom_father_bank_name: '김아빠',
-                groom_mother_name: '김엄마',
-                groom_mother_phone: '010-1111-2222',
-                groom_mother_account: '111-222-333444',
-                groom_mother_bank: '하나은행',
-                groom_mother_bank_name: '김엄마',
-                bride_name: '이영희',
-                bride_phone: '010-5555-6666',
-                bride_account: '456-789-123456',
-                bride_bank: '우리은행',
-                bride_bank_name: '이영희',
-                bride_father_name: '이아빠',
-                bride_father_phone: '010-7777-8888',
-                bride_father_account: '777-888-999000',
-                bride_father_bank: '농협',
-                bride_father_bank_name: '이아빠',
-                bride_mother_name: '이엄마',
-                bride_mother_phone: '010-3333-4444',
-                bride_mother_account: '321-654-987654',
-                bride_mother_bank: '하나은행',
-                bride_mother_bank_name: '이엄마',
-            }
-            setAccountInfo(dummyAccountInfo)
-            setLoading(false)
-            return
+            return dummyAccountInfo
         }
-
-        try {
-            setLoading(true)
-            setError("")
-            const data = await getAccountInfoByPageId(pageId)
-
-            if (data && data.length > 0) {
-                setAccountInfo(data[0])
-            } else {
-                setError("계좌 정보가 없습니다")
-            }
-        } catch (error) {
-            setError(
-                error instanceof Error
-                    ? error.message
-                    : "알 수 없는 오류가 발생했습니다"
-            )
-        } finally {
-            setLoading(false)
+        if (accountInfoData && Array.isArray(accountInfoData) && accountInfoData.length > 0) {
+            return accountInfoData[0] as AccountInfo
         }
-    }, [isDevelopment, pageId])
+        return null
+    }, [isDevelopment, dummyAccountInfo, accountInfoData])
 
-    // page_settings의 안내 텍스트 로드
-    const loadAccountText = useCallback(async () => {
-        try {
-            const settings = await getPageSettingsByPageId(pageId)
-            const fetched = settings?.account_text
-            if (typeof fetched === "string" && fetched === "off") {
-                // "off"인 경우 텍스트 영역을 렌더링하지 않음
-                setIsAccountTextDisabled(true)
-                setAccountText("")
-            } else if (
-                typeof fetched === "string" &&
-                fetched.trim() &&
-                fetched !== "off"
-            ) {
-                setIsAccountTextDisabled(false)
-                setAccountText(fetched)
-            } else {
-                setIsAccountTextDisabled(false)
-                setAccountText(DEFAULT_ACCOUNT_TEXT)
-            }
-        } catch {
-            setIsAccountTextDisabled(false)
-            setAccountText(DEFAULT_ACCOUNT_TEXT)
+    // account_text 처리
+    const { accountText, isAccountTextDisabled } = useMemo(() => {
+        const fetched = pageSettings?.account_text
+        if (typeof fetched === "string" && fetched === "off") {
+            return { accountText: "", isAccountTextDisabled: true }
+        } else if (typeof fetched === "string" && fetched.trim() && fetched !== "off") {
+            return { accountText: fetched, isAccountTextDisabled: false }
+        } else {
+            return { accountText: DEFAULT_ACCOUNT_TEXT, isAccountTextDisabled: false }
         }
-    }, [pageId])
+    }, [pageSettings])
 
-    // 초기 로드
-    useEffect(() => {
-        loadAccountInfo()
-        loadAccountText()
-    }, [pageId, loadAccountInfo, loadAccountText])
+    // 로딩 및 에러 상태
+    const loading = accountLoading || settingsLoading
+    const error = accountError ? "계좌 정보가 없습니다" : ""
 
     // 클립보드 복사 함수
     const copyToClipboard = async (text: string, type: string) => {
