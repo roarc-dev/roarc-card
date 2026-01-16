@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { PROXY_BASE_URL } from '@/lib/supabase'
 // @ts-ignore
@@ -211,12 +212,12 @@ function EternalInteractionWrapper({
             bounce: 0,
           }}
         >
-          <img
+          <Image
             src="/images/eternalInteraction.webp"
             alt="Eternal interaction left"
+            fill
+            loading="lazy"
             style={{
-              width: '100%',
-              height: '100%',
               objectFit: 'cover',
               objectPosition: 'center',
             }}
@@ -240,9 +241,12 @@ function EternalInteractionWrapper({
             The Beginning of our Forever
           </div>
           {/* 로고 이미지 레이어 */}
-          <img
+          <Image
             src="/images/roarc-logo.webp"
             alt="Roarc logo"
+            width={80}
+            height={40}
+            loading="lazy"
             style={{
               position: 'absolute',
               top: '210px',
@@ -273,12 +277,12 @@ function EternalInteractionWrapper({
             bounce: 0,
           }}
         >
-          <img
+          <Image
             src="/images/eternalInteraction.webp"
             alt="Eternal interaction right"
+            fill
+            loading="lazy"
             style={{
-              width: '100%',
-              height: '100%',
               objectFit: 'cover',
               objectPosition: 'center',
               transform: 'scaleX(-1)', // 좌우 반전
@@ -303,9 +307,12 @@ function EternalInteractionWrapper({
             The Beginning of our Forever
           </div>
           {/* 로고 이미지 레이어 */}
-          <img
+          <Image
             src="/images/roarc-logo.webp"
             alt="Roarc logo"
+            width={80}
+            height={40}
+            loading="lazy"
             style={{
               position: 'absolute',
               top: '210px',

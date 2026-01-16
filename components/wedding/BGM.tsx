@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { addPropertyControls, ControlType } from 'framer'
 import { motion } from 'framer-motion'
 
@@ -520,10 +521,12 @@ export default function BGM(props: BGMProps) {
                             height: '24px',
                         }}
                     >
-                        <img
+                        <Image
                             src={isPlaying ? pauseIcon : playIcon}
                             alt={isPlaying ? '일시정지' : '재생'}
-                            style={{ width: '22px', height: '22px' }}
+                            width={22}
+                            height={22}
+                            loading="lazy"
                         />
                     </motion.button>
                 )}

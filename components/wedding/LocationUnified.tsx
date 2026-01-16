@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useMemo } from "react"
+import Image from 'next/image'
 import { motion, AnimatePresence } from "framer-motion"
 import { PROXY_BASE_URL } from '@/lib/supabase'
 
@@ -1008,10 +1009,12 @@ export default function LocationUnified({
                             whiteSpace: "nowrap",
                         }}
                     >
-                        <img
+                        <Image
                             src="https://cdn.roarc.kr/framer/LocationIcon/nmap.png"
                             alt="네이버 지도"
-                            style={{ width: "20px", height: "20px" }}
+                            width={20}
+                            height={20}
+                            loading="lazy"
                         />
                         네이버 지도
                     </a>
@@ -1039,10 +1042,12 @@ export default function LocationUnified({
                             whiteSpace: "nowrap",
                         }}
                     >
-                        <img
+                        <Image
                             src="https://cdn.roarc.kr/framer/LocationIcon/kakaomap_basic.png"
                             alt="카카오맵"
-                            style={{ width: "20px", height: "20px" }}
+                            width={20}
+                            height={20}
+                            loading="lazy"
                         />
                         카카오맵
                     </a>
@@ -1070,10 +1075,12 @@ export default function LocationUnified({
                             whiteSpace: "nowrap",
                         }}
                     >
-                        <img
+                        <Image
                             src="https://cdn.roarc.kr/framer/LocationIcon/tmap.svg"
                             alt="티맵"
-                            style={{ width: "20px", height: "20px" }}
+                            width={20}
+                            height={20}
+                            loading="lazy"
                         />
                         티맵
                     </a>

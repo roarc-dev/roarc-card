@@ -2,6 +2,7 @@
 
 import React, { useMemo, useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import type { PageSettings } from '@/lib/supabase'
 import { ComponentType, DEFAULT_COMPONENT_ORDER } from '@/lib/components-registry'
 import { assignBackgroundColors, postProcessGalleryColors, getButtonColor, type BackgroundColor } from '@/lib/background-colors'
@@ -416,13 +417,16 @@ export default function WeddingPage({ pageSettings }: WeddingPageProps) {
         textAlign: 'center',
         background: componentBackgrounds['KakaoShare'] || '#F5F5F5',
       }}>
-        <img src="https://cdn.roarc.kr/framer/logo/roarc_logotype.svg" alt="roarc"
-            style={{
-                width: 'auto',
-                height: '10px',
-                marginBottom: '10px',
-                opacity: 0.3,
-            }} />
+        <div style={{ marginBottom: '10px', opacity: 0.3 }}>
+          <Image
+            src="https://cdn.roarc.kr/framer/logo/roarc_logotype.svg"
+            alt="roarc"
+            width={60}
+            height={10}
+            loading="lazy"
+            style={{ width: 'auto', height: '10px' }}
+          />
+        </div>
         <div style={FOOTER_TEXT_STYLE}>
           © roarc. all rights reseved.
         </div>
