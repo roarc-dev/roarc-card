@@ -78,6 +78,24 @@ export const COMPONENT_ALLOWED_COLORS: Record<string, BackgroundColor[]> = {
 }
 
 /**
+ * 조건부로 렌더되는 컴포넌트
+ * (데이터 유무 또는 page_settings에 따라 display:none 또는 return null 처리됨)
+ *
+ * - Info: sortedInfoItems.length === 0 → return null
+ * - Account: 계좌 정보 없음 → return null
+ * - UnifiedGalleryComplete: hasImages === false → display: "none"
+ * - RSVPClient: page_settings.rsvp === 'off' → 렌더 안함
+ * - CommentBoard: page_settings.comments === 'off' → 렌더 안함
+ */
+export const CONDITIONAL_RENDER_COMPONENTS = [
+  'Info',
+  'Account',
+  'UnifiedGalleryComplete',
+  'RSVPClient',
+  'CommentBoard',
+] as const
+
+/**
  * RGB 색상을 명도 값으로 변환
  * W3C relative luminance 공식 사용
  */
@@ -119,50 +137,83 @@ function hasGoodContrast(color1: string, color2: string): boolean {
  * 인접 컴포넌트와 명도 차이가 충분한지 확인 (더 엄격한 기준)
  * @param color1 첫 번째 색상 (hex)
  * @param color2 두 번째 색상 (hex)
- * @returns 명도 차이가 최소 8% 이상이면 true
+ * @returns 명도 차이가 최소 3% 이상이면 true
  */
 function hasStrongContrast(color1: string, color2: string): boolean {
   const lum1 = getLuminance(color1)
   const lum2 = getLuminance(color2)
   const contrast = Math.abs(lum1 - lum2)
 
-  // 인접 컴포넌트는 최소 8% 명도 차이 필요 (시각적으로 더 명확한 차이)
-  return contrast >= 0.08
+  // 인접 컴포넌트는 최소 3% 명도 차이 필요
+  // (#fff 1.000 vs #fafafa 0.960 = 0.04 차이 허용)
+  return contrast >= 0.03
 }
 
 /**
  * 실제로 배경색이 할당된 이전 컴포넌트의 색상 찾기
  * (제외 컴포넌트를 건너뛰고 찾음)
+ *
+ * 우선순위:
+ * 1. 항상 렌더되는 컴포넌트 우선 탐색
+ * 2. 조건부 렌더 컴포넌트 포함 탐색 (fallback)
  */
 function findPrevColor(
   components: string[],
   currentIndex: number,
   result: Record<string, BackgroundColor>
 ): BackgroundColor | null {
+  // 1차: 항상 렌더되는 컴포넌트 우선 찾기
   for (let i = currentIndex - 1; i >= 0; i--) {
     const comp = components[i]
-    if (result[comp]) {
+    if (result[comp] && !CONDITIONAL_RENDER_COMPONENTS.includes(comp as any)) {
+      console.log(`[findPrevColor] 항상 렌더 컴포넌트 찾음: ${comp} = ${result[comp]}`)
       return result[comp]
     }
   }
+
+  // 2차: 조건부 컴포넌트 포함해서 찾기 (fallback)
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const comp = components[i]
+    if (result[comp]) {
+      console.log(`[findPrevColor] 조건부 컴포넌트 찾음: ${comp} = ${result[comp]}`)
+      return result[comp]
+    }
+  }
+
   return null
 }
 
 /**
  * 실제로 배경색이 할당될 다음 컴포넌트의 색상 찾기
  * (제외 컴포넌트를 건너뛰고 찾음)
+ *
+ * 우선순위:
+ * 1. 항상 렌더되는 컴포넌트 우선 탐색
+ * 2. 조건부 렌더 컴포넌트 포함 탐색 (fallback)
  */
 function findNextColor(
   components: string[],
   currentIndex: number,
   result: Record<string, BackgroundColor>
 ): BackgroundColor | null {
+  // 1차: 항상 렌더되는 컴포넌트 우선 찾기
   for (let i = currentIndex + 1; i < components.length; i++) {
     const comp = components[i]
-    if (result[comp]) {
+    if (result[comp] && !CONDITIONAL_RENDER_COMPONENTS.includes(comp as any)) {
+      console.log(`[findNextColor] 항상 렌더 컴포넌트 찾음: ${comp} = ${result[comp]}`)
       return result[comp]
     }
   }
+
+  // 2차: 조건부 컴포넌트 포함해서 찾기 (fallback)
+  for (let i = currentIndex + 1; i < components.length; i++) {
+    const comp = components[i]
+    if (result[comp]) {
+      console.log(`[findNextColor] 조건부 컴포넌트 찾음: ${comp} = ${result[comp]}`)
+      return result[comp]
+    }
+  }
+
   return null
 }
 
